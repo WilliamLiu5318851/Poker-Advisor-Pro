@@ -7,10 +7,11 @@ const { createRoot } = ReactDOM;
 
 /**
  * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 3.8 Final Fix:
- * 1. Restored rendering logic so the app loads correctly.
- * 2. Implemented a Singleton Root pattern to prevent "createRoot called twice" warnings.
- * 3. Contains all features: Smart Open Sizes, Fold, Hybrid Bet Sizing, Side Pots, etc.
+ * Version 3.9 Update:
+ * 1. Implemented Auto-Advance Selection for Flop and Hero Hand.
+ * - Selecting Flop card 1 auto-jumps to card 2, then card 3.
+ * - Selecting Hero card 1 auto-jumps to card 2.
+ * 2. Dynamic Card Selector Title: Shows which card is being selected (e.g., "Flop 2/3").
  */
 
 // --- 常量定义 ---
@@ -91,7 +92,11 @@ const TEXTS = {
     segment_main: '主池 (Main)',
     segment_side: '边池 (Side)',
     buy_in_amount: '一手筹码 (Buy-in)',
-    buy_in_info: 'Rebuy 按钮的默认补充金额。'
+    buy_in_info: 'Rebuy 按钮的默认补充金额。',
+    selecting_flop: '选择翻牌 (Flop)',
+    selecting_turn: '选择转牌 (Turn)',
+    selecting_river: '选择河牌 (River)',
+    selecting_hero: '选择手牌'
   },
   en: {
     appTitle: 'Poker Advisor Pro',
@@ -164,7 +169,11 @@ const TEXTS = {
     segment_main: 'Main Pot',
     segment_side: 'Side Pot',
     buy_in_amount: 'Buy-in Amount',
-    buy_in_info: 'Default amount for Rebuy button.'
+    buy_in_info: 'Default amount for Rebuy button.',
+    selecting_flop: 'Select Flop',
+    selecting_turn: 'Select Turn',
+    selecting_river: 'Select River',
+    selecting_hero: 'Select Hand'
   }
 };
 
@@ -249,7 +258,7 @@ export default function TexasHoldemAdvisor() {
   
   const [result, setResult] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [selectingFor, setSelectingFor] = useState(null);
+  const [selectingFor, setSelectingFor] = useState(null); // { type: 'hero'|'board', index: number }
   
   // Settlement State
   const [settlementMode, setSettlementMode] = useState(false);
@@ -585,10 +594,23 @@ export default function TexasHoldemAdvisor() {
 
   const CardSelector = () => {
     if (!selectingFor) return null;
+
+    // Dynamic Title for Selector
+    let title = t.selectCard;
+    if (selectingFor.type === 'hero') title = `${t.selecting_hero} ${selectingFor.index + 1}/2`;
+    if (selectingFor.type === 'board') {
+        if (selectingFor.index < 3) title = `${t.selecting_flop} ${selectingFor.index + 1}/3`;
+        else if (selectingFor.index === 3) title = t.selecting_turn;
+        else title = t.selecting_river;
+    }
+
     return (
       <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setSelectingFor(null)}>
         <div className="bg-slate-800 rounded-xl p-4 max-w-lg w-full max-h-[80vh] overflow-y-auto border border-slate-600 shadow-2xl" onClick={e => e.stopPropagation()}>
-          <h3 className="text-white font-bold mb-4">{t.selectCard}</h3>
+          <h3 className="text-white font-bold mb-4 flex justify-between items-center">
+            <span>{title}</span>
+            <button onClick={() => setSelectingFor(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5"/></button>
+          </h3>
           <div className="grid grid-cols-4 gap-2">
             {SUITS.map(suit => (
               <div key={suit} className="flex flex-col gap-2">
@@ -602,12 +624,23 @@ export default function TexasHoldemAdvisor() {
                       disabled={isTaken}
                       onClick={() => {
                         const card = { rank, suit };
+                        let nextState = null;
+
                         if (selectingFor.type === 'hero') {
-                          const h = [...heroHand]; h[selectingFor.index] = card; setHeroHand(h);
+                          const h = [...heroHand];
+                          h[selectingFor.index] = card;
+                          setHeroHand(h);
+                          // Auto-advance Hero: 0 -> 1 -> Close
+                          if (selectingFor.index === 0) nextState = { type: 'hero', index: 1 };
                         } else {
-                          const b = [...communityCards]; b[selectingFor.index] = card; setCommunityCards(b);
+                          const b = [...communityCards];
+                          b[selectingFor.index] = card;
+                          setCommunityCards(b);
+                          // Auto-advance Board: Flop 0->1->2->Close
+                          if (selectingFor.index < 2) nextState = { type: 'board', index: selectingFor.index + 1 };
                         }
-                        setSelectingFor(null);
+                        
+                        setSelectingFor(nextState);
                       }}
                       className={`p-1 rounded flex justify-center hover:bg-slate-700 ${isTaken ? 'opacity-20 cursor-not-allowed' : ''}`}
                     >
