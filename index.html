@@ -2,17 +2,38 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- 社交分享卡片 (Open Graph) -->
     <meta property="og:title" content="德州扑克智囊 Pro - 实时胜率计算" />
     <meta property="og:description" content="我的私人扑克助手，支持胜率计算、EV分析和策略建议。" />
     <meta property="og:image" content="https://pokeradvice.netlify.app/linkimg.jpg" />
     <meta property="og:url" content="https://pokeradvice.netlify.app/" />
     <meta property="og:type" content="website" />
-    
+
     <title>德州扑克智囊 Pro</title>
     
+    <!-- 1. 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- 2. 引入 Babel (用於解析 JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 3. 樣式 -->
+    <style>
+        body { background-color: #0f172a; color: white; touch-action: manipulation; }
+        /* 簡單的加載動畫 */
+        .loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; color: #94a3b8; text-align: center; padding: 20px; }
+        /* 隱藏數字輸入框的箭頭 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        .error-box { color: #ef4444; margin-top: 20px; font-size: 0.875rem; max-width: 80%; word-break: break-word; }
+    </style>
+    
+    <!-- 4. Import Map (指定 React 版本) -->
     <script type="importmap">
     {
       "imports": {
@@ -22,27 +43,38 @@
       }
     }
     </script>
-
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <style>
-        body { background-color: #0f172a; color: white; }
-        /* 简单的加载动画 */
-        .loading { display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; color: #94a3b8; }
-    </style>
 </head>
 <body>
     <div id="root">
-        <div class="loading">正在加载组件... (需要联网)</div>
+        <div class="loading">
+            <div style="margin-bottom: 1rem;">正在加載組件...</div>
+            <div style="font-size: 0.75rem; opacity: 0.7;">(首次加載可能需要幾秒鐘下載依賴)</div>
+            <!-- 如果腳本報錯，錯誤信息會顯示在這里 -->
+            <div id="error-display" class="error-box"></div>
+        </div>
     </div>
 
+    <!-- 5. React 代碼區域 -->
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
-        // 引入图标 (包含了你新加的 MousePointerClick)
         import { RefreshCw, Trophy, Users, Globe, Brain, Info, DollarSign, ArrowRight, Layers, HandMetal, AlertTriangle, CheckCircle, XCircle, Divide, Flame, Skull, Zap, RotateCcw, Settings, X, Coins, ShieldCheck, MousePointerClick } from 'lucide-react';
 
-        // --- 常量定义 ---
+        // 錯誤捕獲邊界
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errorDisplay = document.getElementById('error-display');
+            if (errorDisplay) {
+                errorDisplay.innerHTML = `加載出錯: ${message}`;
+            }
+        };
+
+        /**
+         * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
+         * Version 3.3 Updates:
+         * 1. UX Improvement: Fixed the "sticky zero" issue in input fields. 
+         */
+
+        // --- Constants & Data ---
         const SUITS = ['s', 'h', 'd', 'c']; 
         const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
         const RANK_VALUES = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
@@ -296,6 +328,10 @@
           // --- Actions ---
 
           const handleHeroBetChange = (val) => {
+            if (val === '') {
+              setHeroBet(0);
+              return;
+            }
             let newBet = Number(val);
             if (newBet < 0) newBet = 0;
             if (newBet > heroStack) newBet = heroStack;
@@ -303,9 +339,26 @@
           };
 
           const handleStackChange = (val) => {
+            if (val === '') {
+              setHeroStack(0);
+              return;
+            }
             let newStack = Number(val);
             if (newStack < 0) newStack = 0;
             setHeroStack(newStack);
+          };
+
+          const handleBuyInChange = (val) => {
+            if (val === '') {
+              setBuyInAmount(0);
+              return;
+            }
+            setBuyInAmount(Number(val));
+          };
+
+          const handleOpponentBetChange = (id, val) => {
+            let newBet = val === '' ? 0 : Number(val);
+            setPlayers(players.map(p => p.id === id ? { ...p, bet: newBet } : p));
           };
 
           const cycleStrategy = () => {
@@ -724,10 +777,11 @@
                             </div>
                             <input 
                               type="number" 
-                              value={heroStack} 
+                              value={heroStack === 0 ? '' : heroStack} 
                               onChange={e => handleStackChange(e.target.value)} 
+                              placeholder="0"
                               className={`w-full bg-slate-950 border rounded px-2 py-1 font-mono transition focus:outline-none 
-                                ${heroStack === 0 ? 'border-red-500 text-red-400' : 'border-slate-700 text-yellow-400'}`} 
+                                ${heroStack === 0 ? 'border-red-500 text-red-400 placeholder-red-700' : 'border-slate-700 text-yellow-400'}`} 
                             />
                          </div>
                          <div>
@@ -744,9 +798,10 @@
                             </div>
                             <input 
                               type="number" 
-                              value={heroBet} 
+                              value={heroBet === 0 ? '' : heroBet} 
                               onChange={(e) => handleHeroBetChange(e.target.value)} 
                               disabled={heroStack === 0}
+                              placeholder="0"
                               className={`w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 font-mono transition focus:outline-none 
                                  ${heroStack === 0 ? 'opacity-50 cursor-not-allowed text-slate-500' : 'text-white focus:border-red-500'}`}
                             />
@@ -772,7 +827,13 @@
                              </button>
                              <div className="flex items-center gap-2 bg-slate-900 rounded px-2">
                                 <span className="text-slate-500 text-xs">$</span>
-                                <input type="number" value={p.bet} onChange={e => { const n = [...players]; n[idx].bet = Number(e.target.value); setPlayers(n); }} className="w-full bg-transparent text-white text-sm py-1 font-mono focus:outline-none" placeholder="0" />
+                                <input 
+                                  type="number" 
+                                  value={p.bet === 0 ? '' : p.bet} 
+                                  placeholder="0"
+                                  onChange={e => handleOpponentBetChange(p.id, e.target.value)} 
+                                  className="w-full bg-transparent text-white text-sm py-1 font-mono focus:outline-none" 
+                                />
                              </div>
                           </div>
                           <button onClick={() => setPlayers(players.filter(x => x.id !== p.id))} className="text-slate-600 hover:text-red-400 px-2">×</button>
@@ -936,8 +997,9 @@
                             <span className="px-3 text-slate-500">$</span>
                             <input 
                               type="number" 
-                              value={buyInAmount} 
-                              onChange={(e) => setBuyInAmount(Number(e.target.value))}
+                              value={buyInAmount === 0 ? '' : buyInAmount} 
+                              onChange={(e) => handleBuyInChange(e.target.value)}
+                              placeholder="0"
                               className="w-full bg-transparent py-2 text-white font-mono focus:outline-none"
                             />
                          </div>
@@ -951,6 +1013,10 @@
 
             </div>
           );
+          
+          function handleCardClick(type, index) {
+            setSelectingFor({ type, index });
+          }
         }
 
         // 渲染应用

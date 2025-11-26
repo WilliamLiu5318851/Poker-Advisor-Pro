@@ -3,10 +3,11 @@ import { RefreshCw, Trophy, Users, Globe, Brain, Info, DollarSign, ArrowRight, L
 
 /**
  * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 3.2 Updates:
- * 1. Bet Sizing Cap: Suggested bet sizes are now capped at Hero's current stack to prevent impossible numbers.
- * 2. Click-to-Apply: Clicking on a suggested bet size (Small/Med/Large) automatically updates the Hero's 'Bet' input.
- * 3. Visual cues added to bet suggestion buttons to indicate interactivity.
+ * Version 3.3 Updates:
+ * 1. UX Improvement: Fixed the "sticky zero" issue in input fields. 
+ * Inputs now display an empty string (showing placeholder '0') when value is 0, 
+ * preventing leading zeros (e.g., "050") and making deletion easier.
+ * 2. Applied this fix to: Opponent Bets, Hero Bet, Hero Stack, and Buy-in Settings.
  */
 
 // --- Constants & Data ---
@@ -265,6 +266,11 @@ export default function TexasHoldemAdvisor() {
   // --- Actions ---
 
   const handleHeroBetChange = (val) => {
+    // If val is empty string, set to 0 internally but handled by input
+    if (val === '') {
+      setHeroBet(0);
+      return;
+    }
     let newBet = Number(val);
     if (newBet < 0) newBet = 0;
     if (newBet > heroStack) newBet = heroStack;
@@ -272,9 +278,26 @@ export default function TexasHoldemAdvisor() {
   };
 
   const handleStackChange = (val) => {
+    if (val === '') {
+      setHeroStack(0);
+      return;
+    }
     let newStack = Number(val);
     if (newStack < 0) newStack = 0;
     setHeroStack(newStack);
+  };
+
+  const handleBuyInChange = (val) => {
+    if (val === '') {
+      setBuyInAmount(0);
+      return;
+    }
+    setBuyInAmount(Number(val));
+  };
+
+  const handleOpponentBetChange = (id, val) => {
+    let newBet = val === '' ? 0 : Number(val);
+    setPlayers(players.map(p => p.id === id ? { ...p, bet: newBet } : p));
   };
 
   const cycleStrategy = () => {
@@ -689,10 +712,11 @@ export default function TexasHoldemAdvisor() {
                     </div>
                     <input 
                       type="number" 
-                      value={heroStack} 
+                      value={heroStack === 0 ? '' : heroStack} 
                       onChange={e => handleStackChange(e.target.value)} 
+                      placeholder="0"
                       className={`w-full bg-slate-950 border rounded px-2 py-1 font-mono transition focus:outline-none 
-                        ${heroStack === 0 ? 'border-red-500 text-red-400' : 'border-slate-700 text-yellow-400'}`} 
+                        ${heroStack === 0 ? 'border-red-500 text-red-400 placeholder-red-700' : 'border-slate-700 text-yellow-400'}`} 
                     />
                  </div>
                  <div>
@@ -709,9 +733,10 @@ export default function TexasHoldemAdvisor() {
                     </div>
                     <input 
                       type="number" 
-                      value={heroBet} 
+                      value={heroBet === 0 ? '' : heroBet} 
                       onChange={(e) => handleHeroBetChange(e.target.value)} 
                       disabled={heroStack === 0}
+                      placeholder="0"
                       className={`w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 font-mono transition focus:outline-none 
                          ${heroStack === 0 ? 'opacity-50 cursor-not-allowed text-slate-500' : 'text-white focus:border-red-500'}`}
                     />
@@ -737,7 +762,13 @@ export default function TexasHoldemAdvisor() {
                      </button>
                      <div className="flex items-center gap-2 bg-slate-900 rounded px-2">
                         <span className="text-slate-500 text-xs">$</span>
-                        <input type="number" value={p.bet} onChange={e => { const n = [...players]; n[idx].bet = Number(e.target.value); setPlayers(n); }} className="w-full bg-transparent text-white text-sm py-1 font-mono focus:outline-none" placeholder="0" />
+                        <input 
+                          type="number" 
+                          value={p.bet === 0 ? '' : p.bet} 
+                          placeholder="0"
+                          onChange={e => handleOpponentBetChange(p.id, e.target.value)} 
+                          className="w-full bg-transparent text-white text-sm py-1 font-mono focus:outline-none" 
+                        />
                      </div>
                   </div>
                   <button onClick={() => setPlayers(players.filter(x => x.id !== p.id))} className="text-slate-600 hover:text-red-400 px-2">×</button>
@@ -901,8 +932,9 @@ export default function TexasHoldemAdvisor() {
                     <span className="px-3 text-slate-500">$</span>
                     <input 
                       type="number" 
-                      value={buyInAmount} 
-                      onChange={(e) => setBuyInAmount(Number(e.target.value))}
+                      value={buyInAmount === 0 ? '' : buyInAmount} 
+                      onChange={(e) => handleBuyInChange(e.target.value)}
+                      placeholder="0"
                       className="w-full bg-transparent py-2 text-white font-mono focus:outline-none"
                     />
                  </div>
