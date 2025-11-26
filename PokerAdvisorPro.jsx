@@ -10,8 +10,10 @@ const { createRoot } = ReactDOM;
 
 /**
  * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 3.5 Fix: 
- * Adapted for Global React Mode (No build step required).
+ * Version 3.6 Update: 
+ * 1. Improved Bet Sizing Logic: Now combines Pot Size AND Hero Stack.
+ * 2. Solves the issue where suggested bet is 0 when Pot is 0 (Opening Raise scenario).
+ * 3. Uses a percentage of stack (2%-20%) as a fallback/minimum for opening bets depending on strategy.
  */
 
 // --- 常量定义 ---
@@ -222,7 +224,7 @@ const CardIcon = ({ rank, suit, className = "" }) => {
 
 // --- Main Component ---
 
-function TexasHoldemAdvisor() {
+export default function TexasHoldemAdvisor() {
   const [lang, setLang] = useState('zh');
   const [strategy, setStrategy] = useState('conservative'); 
   const [showSettings, setShowSettings] = useState(false);
@@ -535,16 +537,37 @@ function TexasHoldemAdvisor() {
         }
       }
 
-      // --- 最新修正逻辑 (Bet Capping) ---
+      // --- 核心修改：混合权重下注算法 (Hybrid Bet Sizing) ---
       if (adviceKey.includes('raise') || adviceKey.includes('allin')) {
-        const p = totalPot;
-        // 辅助函数：确保推荐下注不超过剩余筹码
-        const cap = (val) => Math.min(val, heroStack);
+        const p = totalPot; // 底池
+        const s = heroStack; // 剩余筹码
+        
+        const cap = (val) => Math.min(val, s);
+
+        let smallBase, medBase, largeBase;
+
+        // 取 “基于底池的比例” 和 “基于筹码的开池比例” 中的较大者
+        if (strategy === 'maniac') {
+           // 疯鱼模式：底池倍率更高，或者直接开池 5% - 20% 筹码
+           smallBase = Math.max(p * 0.33, s * 0.05);
+           medBase   = Math.max(p * 0.66, s * 0.10);
+           largeBase = Math.max(p * 1.5,  s * 0.20); 
+        } else if (strategy === 'aggressive') {
+           // 激进模式：3% - 12% 筹码
+           smallBase = Math.max(p * 0.33, s * 0.03);
+           medBase   = Math.max(p * 0.66, s * 0.06);
+           largeBase = Math.max(p * 1.0,  s * 0.12);
+        } else {
+           // 保守模式：2% - 8% 筹码
+           smallBase = Math.max(p * 0.33, s * 0.02);
+           medBase   = Math.max(p * 0.66, s * 0.04);
+           largeBase = Math.max(p * 1.0,  s * 0.08);
+        }
         
         betSizes = {
-          small: cap(Math.round(p * 0.33)),
-          med: cap(Math.round(p * 0.66)),
-          large: cap(Math.round(p * (isManiac ? 1.5 : 1.0)))
+          small: cap(Math.round(smallBase)),
+          med:   cap(Math.round(medBase)),
+          large: cap(Math.round(largeBase))
         };
       }
 
