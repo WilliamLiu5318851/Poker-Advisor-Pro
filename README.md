@@ -4,7 +4,7 @@
 
 > **Live Demo:** [https://pokeradvice.netlify.app/](https://pokeradvice.netlify.app/)
 
-📖 Introduction (项目介绍)
+## 📖 Introduction (项目介绍)
 
 Poker Advisor Pro is a sophisticated, web-based decision support system for Texas Hold'em. It acts as a real-time HUD (Heads-Up Display) simulation, designed to help players make mathematically sound decisions through equity calculation, pot tracking, and strategic advice.
 
@@ -14,7 +14,7 @@ Poker Advisor Pro 是一个先进的德州扑克网页版决策支持系统。�
 
 本项目已从一个简单的计算器演变为一个完整的 游戏状态引擎，能够追踪一手牌从翻牌前（Pre-flop）到河牌圈（River）的全生命周期，并能处理多人 All-in、边池（Side Pots）和资金管理等复杂场景。
 
-🚀 Key Features (核心功能)
+## 🚀 Key Features (核心功能)
 
 🧠 v3.5 Core Engine & Interaction (最新特性)
 
@@ -30,7 +30,7 @@ EN: Implemented a robust loading strategy using Global React/ReactDOM builds to 
 
 CN: 实施了基于全局 React/ReactDOM 的混合加载策略，在无需构建步骤的情况下，完美解决了本地环境下的跨域（CORS）和模块解析问题。
 
-⚡ One-Click Actions (一键操作):
+## ⚡ One-Click Actions (一键操作):
 
 Smart Bet (智能下注): Click on any strategy suggestion (e.g., "Small Bet") to auto-fill the amount. (点击任意策略建议即可自动填入下注金额)
 
@@ -38,7 +38,7 @@ Smart Bet (智能下注): Click on any strategy suggestion (e.g., "Small Bet") t
 
 UX Polish (体验优化): Fixed "sticky zero" input behaviors for a smoother mobile typing experience. (修复了输入框“粘性0”的问题，移动端输入更加流畅)
 
-💰 Pot & Bankroll Management (资金管理)
+## 💰 Pot & Bankroll Management (资金管理)
 
 Smart Pot Logic: Automatically tracks Main Pot and Side Pots when multiple players are All-in with different stack sizes. (智能边池逻辑：自动处理多人 All-in 时的 主池 与 边池 分配)
 
@@ -46,7 +46,7 @@ SPR Tracking: Real-time Stack-to-Pot Ratio calculation with "Pot Committed" warn
 
 Dynamic Rebuy: Bankruptcy protection with customizable buy-in amounts. (动态重买机制：提供破产保护和自定义买入额)
 
-🤖 Strategy Advisor (策略建议)
+## 🤖 Strategy Advisor (策略建议)
 
 Real-time Equity: Uses Monte Carlo simulations (1500+ iterations/run) to predict win rates. (实时胜率：使用 蒙特卡洛模拟 算法进行高精度预测)
 
@@ -58,7 +58,7 @@ Persona-based Advice (风格化建议): Switch between three distinct strategy e
 
 🔥 Maniac (Bluff): High variance, exploits fold equity. (疯鱼/诈唬)
 
-🛠 Tech Stack (技术栈)
+## 🛠 Tech Stack (技术栈)
 
 This project utilizes a modern Zero-Build Architecture, allowing it to run directly in the browser without a complex Node.js build step (Webpack/Vite), making it incredibly lightweight and easy to deploy.
 
@@ -74,7 +74,7 @@ Compiler: Babel Standalone (In-browser JSX compilation)
 
 Deployment: Netlify (CI/CD via GitHub)
 
-📂 Installation & Usage (安装与使用)
+## 📂 Installation & Usage (安装与使用)
 
 Local Development (本地开发 - 推荐)
 
@@ -106,15 +106,11 @@ Deployment (部署)
 Simply push your changes to GitHub. Netlify (connected to your repo) will automatically deploy the index.html and PokerAdvisorPro.jsx files.
 只需将更改推送到 GitHub。连接到你仓库的 Netlify 会自动部署最新版本。
 
-📸 Screenshots (截图)
+## 📸 Screenshots (截图)
 
-Equity Calculation (胜率计算)
+| Equity Calculation (胜率计算) | Strategy Advice (策略建议) |
 
-Strategy Advice (策略建议)
-
-Real-time advice based on your hand strength.
-
-Smart bet sizing and action suggestions.
+| ![功能1截图](Screenshot1.png) | ![功能2截图](Screenshot2.png) |
 
 👤 Author (作者)
 
