@@ -6,14 +6,15 @@ import { RefreshCw, Trophy, Users, Globe, Brain, Info, DollarSign, ArrowRight, L
 
 // 2. 从全局变量中获取 React 功能
 const { useState, useEffect, useMemo } = React;
-const { createRoot } = ReactDOM;
+// const { createRoot } = ReactDOM; // 移除: 渲染逻辑移交至 HTML 入口文件
 
 /**
  * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 3.6 Update: 
- * 1. Improved Bet Sizing Logic: Now combines Pot Size AND Hero Stack.
- * 2. Solves the issue where suggested bet is 0 when Pot is 0 (Opening Raise scenario).
- * 3. Uses a percentage of stack (2%-20%) as a fallback/minimum for opening bets depending on strategy.
+ * Version 3.7 Fix: 
+ * 1. Removed `createRoot` and `root.render` from the end of this file.
+ * This file now purely exports the main component `TexasHoldemAdvisor`.
+ * The rendering responsibility is moved to the main HTML file to prevent "createRoot called twice" warnings.
+ * 2. Maintained all previous logic (Stack-based Open, Hybrid Bet Sizing, Fold, etc.).
  */
 
 // --- 常量定义 ---
@@ -1008,6 +1009,3 @@ export default function TexasHoldemAdvisor() {
     setSelectingFor({ type, index });
   }
 }
-
-const root = createRoot(document.getElementById('root'));
-root.render(<TexasHoldemAdvisor />);
