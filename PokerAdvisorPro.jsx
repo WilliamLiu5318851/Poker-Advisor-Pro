@@ -1,16 +1,20 @@
-import React, { useState, useEffect, useMemo } from 'react';
+// ⚠️ 核心修复：不再使用 import 导入 React，而是使用 index.html 中加载的全局变量
+// 这样可以解决 "createRoot is not defined" 的问题
+
+// 1. 图标库仍然使用 import (因为 index.html 的 importmap 中定义了它)
 import { RefreshCw, Trophy, Users, Globe, Brain, Info, DollarSign, ArrowRight, Layers, HandMetal, AlertTriangle, CheckCircle, XCircle, Divide, Flame, Skull, Zap, RotateCcw, Settings, X, Coins, ShieldCheck, MousePointerClick, Flag } from 'lucide-react';
+
+// 2. 从全局变量中获取 React 功能
+const { useState, useEffect, useMemo } = React;
+const { createRoot } = ReactDOM;
 
 /**
  * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 3.4 Updates:
- * 1. Added "Fold" button to Hero section.
- * 2. Fold logic: Deducts current 'heroBet' from stack and immediately resets the game for the next hand.
- * 3. Streamlined the flow for "Bet -> Face Raise -> Fold -> Next Hand".
+ * Version 3.5 Fix: 
+ * Adapted for Global React Mode (No build step required).
  */
 
-// --- Constants & Data ---
-
+// --- 常量定义 ---
 const SUITS = ['s', 'h', 'd', 'c']; 
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const RANK_VALUES = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
@@ -218,7 +222,7 @@ const CardIcon = ({ rank, suit, className = "" }) => {
 
 // --- Main Component ---
 
-export default function TexasHoldemAdvisor() {
+function TexasHoldemAdvisor() {
   const [lang, setLang] = useState('zh');
   const [strategy, setStrategy] = useState('conservative'); 
   const [showSettings, setShowSettings] = useState(false);
@@ -267,7 +271,6 @@ export default function TexasHoldemAdvisor() {
   // --- Actions ---
 
   const handleHeroBetChange = (val) => {
-    // If val is empty string, set to 0 internally but handled by input
     if (val === '') {
       setHeroBet(0);
       return;
@@ -302,11 +305,9 @@ export default function TexasHoldemAdvisor() {
   };
 
   const handleFold = () => {
-    // 1. Calculate remaining stack (Start Stack - Current Bet)
     const remainingStack = heroStack - heroBet;
     setHeroStack(Math.max(0, remainingStack));
     
-    // 2. Reset game state for next hand
     setStreet(0);
     setMainPot(0);
     setHeroBet(0);
@@ -534,10 +535,10 @@ export default function TexasHoldemAdvisor() {
         }
       }
 
-      // Bet Sizing Logic with Capping (FIX for User)
+      // --- 最新修正逻辑 (Bet Capping) ---
       if (adviceKey.includes('raise') || adviceKey.includes('allin')) {
         const p = totalPot;
-        // Helper to ensure bet doesn't exceed stack
+        // 辅助函数：确保推荐下注不超过剩余筹码
         const cap = (val) => Math.min(val, heroStack);
         
         betSizes = {
@@ -615,6 +616,10 @@ export default function TexasHoldemAdvisor() {
   };
 
   const { sidePot, eligiblePot } = settlementMode ? getPotSplit() : { sidePot: 0, eligiblePot: 0 };
+
+  function handleCardClick(type, index) {
+    setSelectingFor({ type, index });
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-10">
@@ -980,5 +985,6 @@ export default function TexasHoldemAdvisor() {
     setSelectingFor({ type, index });
   }
 }
+
 const root = createRoot(document.getElementById('root'));
 root.render(<TexasHoldemAdvisor />);
