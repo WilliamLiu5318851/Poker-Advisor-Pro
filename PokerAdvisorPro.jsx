@@ -1,5 +1,5 @@
 // 1. 图标库 (从 index.html 的 importmap 加载)
-import { RefreshCw, Trophy, Users, Globe, Brain, Info, DollarSign, ArrowRight, Layers, HandMetal, AlertTriangle, CheckCircle, XCircle, Divide, Flame, Skull, Zap, RotateCcw, Settings, X, Coins, ShieldCheck, MousePointerClick, Flag } from 'lucide-react';
+import { RefreshCw, Trophy, Users, Globe, Brain, Info, DollarSign, ArrowRight, Layers, HandMetal, AlertTriangle, CheckCircle, XCircle, Divide, Flame, Skull, Zap, RotateCcw, Settings, X, Coins, ShieldCheck, MousePointerClick, Flag, Lightbulb } from 'lucide-react';
 
 // 2. 从全局变量中获取 React 功能 (关键：适配 Cloudflare Pages Zero-Build)
 const { useState, useEffect, useMemo } = React;
@@ -7,10 +7,9 @@ const { createRoot } = ReactDOM;
 
 /**
  * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 3.9 Update:
- * 1. Implemented Auto-Advance Selection for Flop and Hero Hand.
- * 2. Dynamic Card Selector Title: Shows which card is being selected.
- * 3. Retained all previous features (Fold, Input Fix, Hybrid Loading).
+ * Version 4.1 Update:
+ * 1. Added Pre-flop specific analysis (起手牌分析).
+ * 2. Identifies Premium Pairs, Suited Connectors, Set Mining, etc.
  */
 
 // --- 常量定义 ---
@@ -18,6 +17,60 @@ const SUITS = ['s', 'h', 'd', 'c'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const RANK_VALUES = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
 const STREETS = ['Pre-flop', 'Flop', 'Turn', 'River'];
+
+// --- 手牌分析建议数据集 (含翻牌前 & 翻牌后) ---
+const HAND_ANALYSIS_DEFINITIONS = {
+  zh: {
+    // --- Pre-flop (翻牌前) ---
+    pre_monster_pair: { label: "超级对子 (Premium Pair)", advice: "加注/4-Bet", reason: "AA/KK/QQ 是起手最强牌，尽可能在翻前造大底池。" },
+    pre_strong_pair: { label: "强对子 (Strong Pair)", advice: "加注/跟注", reason: "JJ/TT/99 很有价值，但容易被翻出的高牌压制，小心行事。" },
+    pre_small_pair: { label: "小对子 (Set Mining)", advice: "投机/埋伏", reason: "目标是中三条(Set)。如果赔率便宜就看牌，中不了就跑。" },
+    pre_premium_high: { label: "核心高牌 (Premium High)", advice: "加注/价值", reason: "AK/AQ 是强力起手牌，击中顶对往往能赢大底池。" },
+    pre_suited_connector: { label: "同花连张 (Suited Connector)", advice: "投机/跟注", reason: "具有极强的成顺/成花潜力，适合深筹码时入局博大牌。" },
+    pre_suited_ace: { label: "同花A (Suited Ace)", advice: "半诈唬/阻断", reason: "有A做阻断牌，且能听坚果同花或顺子(Wheel)，非常灵活。" },
+    pre_broadway: { label: "广播道 (Broadways)", advice: "谨慎进攻", reason: "两张大牌(如KJ/QJ)，容易形成顶对，但踢脚可能不够大。" },
+    pre_trash: { label: "杂牌 (Trash)", advice: "弃牌 (Fold)", reason: "长期来看，玩这种牌是亏损的根源。省下筹码等待良机。" },
+
+    // --- Post-flop (翻牌后) ---
+    monster: { label: "怪兽牌 (Monster)", advice: "强力价值下注", reason: "你击中了极强的牌(三条+)，目标是造大底池。" },
+    top_pair: { label: "顶对 (Top Pair)", advice: "价值下注/控池", reason: "你有顶对，通常领先。但在湿润牌面要小心。" },
+    middle_pair: { label: "中对 (Middle Pair)", advice: "抓诈唬/过牌", reason: "具有摊牌价值。适合过牌控池，或抓诈唬。" },
+    bottom_pair: { label: "底对 (Bottom Pair)", advice: "过牌/谨慎摊牌", reason: "牌力较弱，很难承受大额注码。" },
+    pocket_pair_below: { label: "小口袋对 (Underpair)", advice: "过牌/弃牌", reason: "你的对子小于公牌，极易被压制。" },
+    flush_draw_nut: { label: "坚果同花听牌 (Nut Flush Draw)", advice: "半诈唬 (Semi-Bluff)", reason: "A花听牌！即使没中也有机会赢，适合激进打法。" },
+    flush_draw: { label: "同花听牌 (Flush Draw)", advice: "跟注/半诈唬", reason: "还需要1张同花。赔率合适可跟注，或加注施压。" },
+    straight_draw_oesd: { label: "两头顺听牌 (Open-Ended)", advice: "积极进攻", reason: "你有8张补牌成顺，这是很强的听牌。" },
+    straight_draw_gutshot: { label: "卡顺听牌 (Gutshot)", advice: "谨慎跟注", reason: "只有4张补牌。除非极其便宜，否则别追。" },
+    combo_draw: { label: "双重听牌 (Combo Draw)", advice: "全压/重注", reason: "同时听花和顺(或对子)，胜率极高，甚至领先成牌！" },
+    overcards: { label: "两张高牌 (Overcards)", advice: "观望/飘打", reason: "暂无成牌。若对手示弱，可尝试诈唬。" },
+    trash: { label: "空气牌 (Trash)", advice: "弃牌/纯诈唬", reason: "毫无胜率。除非你是为了偷底池，否则快跑。" }
+  },
+  en: {
+    // --- Pre-flop ---
+    pre_monster_pair: { label: "Premium Pair", advice: "Raise/4-Bet", reason: "AA/KK/QQ are the best starting hands. Build the pot early." },
+    pre_strong_pair: { label: "Strong Pair", advice: "Raise/Call", reason: "JJ/TT/99 have value but are vulnerable to overcards." },
+    pre_small_pair: { label: "Set Mining", advice: "Call Cheap", reason: "Looking to hit a Set (Three of a Kind). Fold if you miss." },
+    pre_premium_high: { label: "Premium High", advice: "Raise for Value", reason: "AK/AQ are powerful. Top pair usually dominates." },
+    pre_suited_connector: { label: "Suited Connector", advice: "Speculate", reason: "Great potential for Straights/Flushes. Good for deep stacks." },
+    pre_suited_ace: { label: "Suited Ace", advice: "Semi-Bluff", reason: "Nut Flush potential + Blocker value. Versatile hand." },
+    pre_broadway: { label: "Broadways", advice: "Proceed with Caution", reason: "Two high cards (KJ/QJ). Good top pair potential but watch the kicker." },
+    pre_trash: { label: "Trash", advice: "Fold", reason: "Playing these hands loses money long-term. Wait for better spots." },
+
+    // --- Post-flop ---
+    monster: { label: "Monster Hand", advice: "Strong Value Bet", reason: "You hit a monster (Set+). Build the pot!" },
+    top_pair: { label: "Top Pair", advice: "Value/Pot Control", reason: "Top pair is usually good, but be careful on wet boards." },
+    middle_pair: { label: "Middle Pair", advice: "Bluff Catch/Check", reason: "Showdown value. Check to control pot size." },
+    bottom_pair: { label: "Bottom Pair", advice: "Check/Fold", reason: "Weak showdown value. Cannot withstand heat." },
+    pocket_pair_below: { label: "Underpair", advice: "Check/Fold", reason: "Your pocket pair is counterfeited by the board." },
+    flush_draw_nut: { label: "Nut Flush Draw", advice: "Semi-Bluff", reason: "Ace-high flush draw! Huge equity, play aggressively." },
+    flush_draw: { label: "Flush Draw", advice: "Call/Semi-Bluff", reason: "One card to flush. Call if odds are good." },
+    straight_draw_oesd: { label: "Open-Ended Straight Draw", advice: "Aggressive", reason: "8 outs to a straight. Very strong draw." },
+    straight_draw_gutshot: { label: "Gutshot Draw", advice: "Caution", reason: "Only 4 outs. Do not chase unless cheap." },
+    combo_draw: { label: "Combo Draw", advice: "All-In/Heavy Bet", reason: "Flush + Straight draw. Massive equity!" },
+    overcards: { label: "Overcards", advice: "Float/Check", reason: "No made hand yet. Good potential if you hit." },
+    trash: { label: "Trash", advice: "Fold/Pure Bluff", reason: "No equity. Fold unless you are stealing." }
+  }
+};
 
 const TEXTS = {
   zh: {
@@ -92,7 +145,6 @@ const TEXTS = {
     segment_side: '边池 (Side)',
     buy_in_amount: '一手筹码 (Buy-in)',
     buy_in_info: 'Rebuy 按钮的默认补充金额。',
-    // v3.9 New Texts
     selecting_flop: '选择翻牌',
     selecting_turn: '选择转牌 (Turn)',
     selecting_river: '选择河牌 (River)',
@@ -170,7 +222,6 @@ const TEXTS = {
     segment_side: 'Side Pot',
     buy_in_amount: 'Buy-in Amount',
     buy_in_info: 'Default amount for Rebuy button.',
-    // v3.9 New Texts
     selecting_flop: 'Select Flop',
     selecting_turn: 'Select Turn',
     selecting_river: 'Select River',
@@ -216,6 +267,111 @@ const evaluateHand = (cards) => {
   if (countValues.filter(c => c === 2).length >= 2) return 2000000;
   if (countValues.includes(2)) return 1000000;
   return ranks[0];
+};
+
+// --- 核心分析函数 (Updated for Pre-flop) ---
+const analyzeHandFeatures = (heroCards, communityCards) => {
+  if (!heroCards[0] || !heroCards[1]) return null;
+  
+  // Hero的牌值
+  const h1_rank = RANK_VALUES[heroCards[0].rank];
+  const h2_rank = RANK_VALUES[heroCards[1].rank];
+  const h1 = Math.max(h1_rank, h2_rank);
+  const h2 = Math.min(h1_rank, h2_rank);
+  
+  const isSuited = heroCards[0].suit === heroCards[1].suit;
+  const isPair = h1 === h2;
+
+  // === 1. Pre-flop Analysis (翻牌前) ===
+  const board = communityCards.filter(Boolean);
+  if (board.length === 0) {
+      if (isPair) {
+          if (h1 >= 12) return "pre_monster_pair"; // QQ+
+          if (h1 >= 9) return "pre_strong_pair";   // 99-JJ
+          return "pre_small_pair";                 // 22-88
+      }
+      
+      if (h1 >= 13 && h2 >= 12) return "pre_premium_high"; // AK, AQ, KQ? (Strictly AK/AQ usually)
+      if (h1 === 14 && h2 >= 10) return "pre_premium_high"; // AT+
+
+      if (isSuited) {
+          if (h1 === 14) return "pre_suited_ace"; // A2s-A9s
+          if (h1 - h2 === 1 && h1 <= 11) return "pre_suited_connector"; // JTs, T9s ... 54s
+          if (h1 >= 10 && h2 >= 10) return "pre_broadway"; // KJs, QJs
+      }
+
+      if (h1 >= 10 && h2 >= 10) return "pre_broadway"; // Offsuit broadways
+      
+      return "pre_trash";
+  }
+
+  // === 2. Post-flop Analysis (翻牌后) ===
+  const allCards = [...heroCards, ...board];
+  const suits = {};
+  const ranks = [];
+  allCards.forEach(c => {
+    suits[c.suit] = (suits[c.suit] || 0) + 1;
+    ranks.push(RANK_VALUES[c.rank]);
+  });
+  ranks.sort((a, b) => a - b);
+  const uniqueRanks = [...new Set(ranks)];
+  
+  const boardRanks = board.map(c => RANK_VALUES[c.rank]).sort((a,b)=>b-a);
+  const maxBoardRank = boardRanks[0];
+
+  // A. Flush Draw
+  let flushDrawType = null;
+  const fdSuit = Object.keys(suits).find(s => suits[s] === 4);
+  if (fdSuit) {
+    const hasNutAttr = (heroCards[0].suit === fdSuit && h1_rank === 14) || (heroCards[1].suit === fdSuit && h2_rank === 14);
+    flushDrawType = hasNutAttr ? "flush_draw_nut" : "flush_draw";
+  }
+
+  // B. Straight Draw
+  let straightDrawType = null;
+  for (let i = 0; i <= uniqueRanks.length - 4; i++) {
+    const window = uniqueRanks.slice(i, i + 4);
+    const span = window[window.length - 1] - window[0];
+    if (span <= 4) { 
+      straightDrawType = (span === 3) ? "straight_draw_oesd" : "straight_draw_gutshot";
+    }
+  }
+
+  // C. Pairs
+  let pairType = "trash";
+  const heroRankCounts = { [h1_rank]: 0, [h2_rank]: 0 };
+  allCards.forEach(c => {
+    const r = RANK_VALUES[c.rank];
+    if (r === h1_rank) heroRankCounts[h1_rank]++;
+    if (r === h2_rank) heroRankCounts[h2_rank]++;
+  });
+
+  const hitCount = Math.max(heroRankCounts[h1_rank], heroRankCounts[h2_rank]);
+
+  if (hitCount >= 3) pairType = "monster"; 
+  else if (hitCount === 2) {
+    if (isPair) {
+      pairType = h1 > maxBoardRank ? "top_pair" : "pocket_pair_below"; 
+    } else {
+      const pairRank = heroRankCounts[h1_rank] === 2 ? h1_rank : h2_rank;
+      if (pairRank === maxBoardRank) pairType = "top_pair";
+      else if (pairRank > boardRanks[boardRanks.length-1]) pairType = "middle_pair";
+      else pairType = "bottom_pair";
+    }
+  } else {
+    if (h1 > maxBoardRank && h2 > maxBoardRank) pairType = "overcards";
+    else pairType = "trash";
+  }
+
+  if (flushDrawType && straightDrawType) return "combo_draw";
+  if (pairType === "monster") return "monster";
+  if (flushDrawType === "flush_draw_nut") return "flush_draw_nut";
+  if (straightDrawType === "straight_draw_oesd") return "straight_draw_oesd";
+  if (pairType === "top_pair") return "top_pair";
+  if (flushDrawType) return "flush_draw";
+  if (straightDrawType) return "straight_draw_gutshot";
+  
+  return pairType; 
 };
 
 const CardIcon = ({ rank, suit, className = "" }) => {
@@ -575,12 +731,33 @@ function TexasHoldemAdvisor() {
         };
       }
 
+      // --- 位置 C: 集成调用分析函数 ---
+      const analysisKey = analyzeHandFeatures(heroHand, communityCards);
+      const analysisData = analysisKey ? HAND_ANALYSIS_DEFINITIONS[lang][analysisKey] : null;
+
+      let finalAdvice = t[adviceKey];
+      let finalReason = t[reasonKey];
+
+      // 如果有具体的牌型分析，覆盖Reason，有时覆盖Advice
+      if (analysisData) {
+        finalReason = analysisData.reason;
+        // 对于极强的牌或极好的听牌，强制建议进攻，覆盖默认的赔率逻辑
+        if (analysisKey === 'monster' || analysisKey === 'pre_monster_pair' || analysisKey === 'combo_draw' || analysisKey === 'flush_draw_nut') {
+           finalAdvice = analysisData.advice;
+        }
+        // 如果是垃圾牌，且目前建议不是弃牌（因为随机模拟可能偶尔胜率高），强制建议弃牌 (除非是诈唬模式)
+        if (analysisKey === 'pre_trash' && strategy !== 'maniac' && callAmount > 0) {
+            finalAdvice = t.advice_fold;
+        }
+      }
+
       setResult({
         equity: equity.toFixed(1),
         potOdds: potOdds.toFixed(1),
         requiredEquity: requiredEquity.toFixed(1),
-        advice: t[adviceKey],
-        reason: t[reasonKey],
+        advice: finalAdvice,
+        reason: finalReason,
+        handTypeLabel: analysisData ? analysisData.label : null, // 传递给UI显示
         betSizes,
         isBluff: adviceKey.includes('bluff')
       });
@@ -927,6 +1104,14 @@ function TexasHoldemAdvisor() {
                      result.isBluff ? 'text-purple-400 animate-pulse' :
                      result.advice.includes('Fold') ? 'text-red-400' : 'text-emerald-400'
                    }`}>{result.advice}</h2>
+                   
+                   {/* --- 位置 D: 显示牌型分析结果 --- */}
+                   {result.handTypeLabel && (
+                     <div className="inline-block bg-slate-700 text-blue-200 text-xs px-2 py-0.5 rounded my-1 border border-blue-500/30">
+                       <span className="flex items-center gap-1"><Lightbulb className="w-3 h-3"/> {result.handTypeLabel}</span>
+                     </div>
+                   )}
+
                    <p className="text-xs text-slate-400 mt-1">{result.reason}</p>
                 </div>
                 <div className="text-right">
