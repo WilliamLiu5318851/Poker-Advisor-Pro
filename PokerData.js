@@ -1,5 +1,5 @@
 /**
- * Poker Advisor Pro - Data Layer
+ * Poker Advisor Pro - Data Layer (v4.9 Updated)
  * 这个文件包含了所有的静态数据、文本翻译和策略定义。
  * 它会挂载到 window.PokerData 对象上，供主逻辑文件使用。
  */
@@ -15,6 +15,7 @@ window.PokerData.CONSTANTS = {
 };
 
 // --- 手牌分析建议数据集 (Hand Analysis Definitions) ---
+// 这里定义了针对具体牌型（如顶对、听牌、怪兽牌）的战术建议
 window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
   zh: {
     // --- Pre-flop (翻牌前) ---
@@ -31,7 +32,7 @@ window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
     // Made Hands (成牌) - Priority 1
     made_straight_flush: { label: "同花顺 (Straight Flush)", advice: "慢打/诱敌", reason: "绝对坚果！现在的目标是怎么让对手把钱全输给你。" },
     made_quads: { label: "四条 (Quads)", advice: "慢打/诱敌", reason: "炸弹！极小概率输牌，允许对手中牌后再加注。" },
-    made_full_house: { label: "满堂红 (Full House)", advice: "价值下注", reason: "极强的成牌。除非对手有更大的葫芦，否则你赢定了。" },
+    made_full_house: { label: "葫芦 (Full House)", advice: "价值下注", reason: "极强的成牌。除非对手有更大的葫芦，否则你赢定了。" },
     made_flush: { label: "同花 (Flush)", advice: "价值下注", reason: "你已经完成了同花！注意牌面是否有公对(防葫芦)。" },
     made_straight: { label: "顺子 (Straight)", advice: "积极进攻", reason: "顺子是大牌。在同花面要小心，否则请以此收池。" },
     monster: { label: "三条 (Trips/Set)", advice: "强力价值", reason: "暗三条极其隐蔽，明三条也很强。造大底池！" },
@@ -46,7 +47,7 @@ window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
     flush_draw_nut: { label: "坚果同花听牌 (Nut Flush Draw)", advice: "半诈唬 (Semi-Bluff)", reason: "A花听牌！即使没中也有机会赢，适合激进打法。" },
     flush_draw: { label: "同花听牌 (Flush Draw)", advice: "跟注/半诈唬", reason: "还需要1张同花。赔率合适可跟注，或加注施压。" },
     straight_draw_oesd: { label: "两头顺听牌 (Open-Ended)", advice: "积极进攻", reason: "你有8张补牌成顺，这是很强的听牌。" },
-    straight_draw_gutshot: { label: "卡顺听牌 (Gutshot)", advice: "谨慎跟注", reason: "只有4张补牌。除非极其便宜，否则别追。" },
+    straight_draw_gutshot: { label: "卡顺听牌 (Gutshot)", advice: "谨慎跟注", reason: "只有4张补牌(含A-2-3-4)。除非极其便宜，否则别追。" },
     combo_draw: { label: "双重听牌 (Combo Draw)", advice: "全压/重注", reason: "同时听花和顺(或对子)，胜率极高，甚至领先成牌！" },
     overcards: { label: "两张高牌 (Overcards)", advice: "观望/飘打", reason: "暂无成牌。若对手示弱，可尝试诈唬。" },
     trash: { label: "空气牌 (Trash)", advice: "弃牌/纯诈唬", reason: "毫无胜率。除非你是为了偷底池，否则快跑。" }
@@ -85,7 +86,7 @@ window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
   }
 };
 
-// --- 多语言文本 (Localization) ---
+// --- 多语言文本 (Localization) - Updated to v4.8 ---
 window.PokerData.TEXTS = {
   zh: {
     appTitle: '德州扑克智囊 Pro',
@@ -162,7 +163,7 @@ window.PokerData.TEXTS = {
     segment_side: '边池 (Side)',
     buy_in_amount: '一手筹码 (Buy-in)',
     buy_in_info: 'Rebuy 按钮的默认补充金额。',
-    selecting_flop: '选择翻牌',
+    selecting_flop: '选择翻牌 (Flop)',
     selecting_turn: '选择转牌 (Turn)',
     selecting_river: '选择河牌 (River)',
     selecting_hero: '选择手牌'
