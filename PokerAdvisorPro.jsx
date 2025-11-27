@@ -7,9 +7,10 @@ const { createRoot } = ReactDOM;
 
 /**
  * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 4.2 Update:
- * 1. Added "One-Click Call" shortcut (一键跟注).
- * 2. Intelligent logic to handle Call vs All-In based on stack size.
+ * Version 4.3 Update:
+ * 1. Fixed "Full House" recognition bug (修复满堂红识别问题).
+ * 2. Disabled "Draw" advice on River (河牌圈不再提示听牌).
+ * 3. Enhanced "Monster" detection to include all Made Hands (Flush/Straight/FH).
  */
 
 // --- 常量定义 ---
@@ -32,11 +33,21 @@ const HAND_ANALYSIS_DEFINITIONS = {
     pre_trash: { label: "杂牌 (Trash)", advice: "弃牌 (Fold)", reason: "长期来看，玩这种牌是亏损的根源。省下筹码等待良机。" },
 
     // --- Post-flop (翻牌后) ---
-    monster: { label: "怪兽牌 (Monster)", advice: "强力价值下注", reason: "你击中了极强的牌(三条+)，目标是造大底池。" },
+    // Made Hands (成牌) - Priority 1
+    made_straight_flush: { label: "同花顺 (Straight Flush)", advice: "慢打/诱敌", reason: "绝对坚果！现在的目标是怎么让对手把钱全输给你。" },
+    made_quads: { label: "四条 (Quads)", advice: "慢打/诱敌", reason: "炸弹！极小概率输牌，允许对手中牌后再加注。" },
+    made_full_house: { label: "满堂红 (Full House)", advice: "价值下注", reason: "极强的成牌。除非对手有更大的葫芦，否则你赢定了。" },
+    made_flush: { label: "同花 (Flush)", advice: "价值下注", reason: "你已经完成了同花！注意牌面是否有公对(防葫芦)。" },
+    made_straight: { label: "顺子 (Straight)", advice: "积极进攻", reason: "顺子是大牌。在同花面要小心，否则请以此收池。" },
+    monster: { label: "三条 (Trips/Set)", advice: "强力价值", reason: "暗三条极其隐蔽，明三条也很强。造大底池！" },
+    
+    // Pairs (对子) - Priority 2
     top_pair: { label: "顶对 (Top Pair)", advice: "价值下注/控池", reason: "你有顶对，通常领先。但在湿润牌面要小心。" },
     middle_pair: { label: "中对 (Middle Pair)", advice: "抓诈唬/过牌", reason: "具有摊牌价值。适合过牌控池，或抓诈唬。" },
     bottom_pair: { label: "底对 (Bottom Pair)", advice: "过牌/谨慎摊牌", reason: "牌力较弱，很难承受大额注码。" },
     pocket_pair_below: { label: "小口袋对 (Underpair)", advice: "过牌/弃牌", reason: "你的对子小于公牌，极易被压制。" },
+    
+    // Draws (听牌) - Priority 3 (无效于河牌)
     flush_draw_nut: { label: "坚果同花听牌 (Nut Flush Draw)", advice: "半诈唬 (Semi-Bluff)", reason: "A花听牌！即使没中也有机会赢，适合激进打法。" },
     flush_draw: { label: "同花听牌 (Flush Draw)", advice: "跟注/半诈唬", reason: "还需要1张同花。赔率合适可跟注，或加注施压。" },
     straight_draw_oesd: { label: "两头顺听牌 (Open-Ended)", advice: "积极进攻", reason: "你有8张补牌成顺，这是很强的听牌。" },
@@ -57,11 +68,18 @@ const HAND_ANALYSIS_DEFINITIONS = {
     pre_trash: { label: "Trash", advice: "Fold", reason: "Playing these hands loses money long-term. Wait for better spots." },
 
     // --- Post-flop ---
-    monster: { label: "Monster Hand", advice: "Strong Value Bet", reason: "You hit a monster (Set+). Build the pot!" },
+    made_straight_flush: { label: "Straight Flush", advice: "Slowplay", reason: "The absolute nuts! Try to extract maximum value." },
+    made_quads: { label: "Quads", advice: "Slowplay", reason: "Four of a kind. Let them catch up, then punish." },
+    made_full_house: { label: "Full House", advice: "Value Bet", reason: "Very strong hand. You are likely winning." },
+    made_flush: { label: "Flush", advice: "Value Bet", reason: "You hit your flush! Watch out for paired boards (Full House)." },
+    made_straight: { label: "Straight", advice: "Aggressive", reason: "Strong hand. Bet for value." },
+    monster: { label: "Trips/Set", advice: "Strong Value", reason: "Three of a kind is a very strong holding. Build the pot." },
+
     top_pair: { label: "Top Pair", advice: "Value/Pot Control", reason: "Top pair is usually good, but be careful on wet boards." },
     middle_pair: { label: "Middle Pair", advice: "Bluff Catch/Check", reason: "Showdown value. Check to control pot size." },
     bottom_pair: { label: "Bottom Pair", advice: "Check/Fold", reason: "Weak showdown value. Cannot withstand heat." },
     pocket_pair_below: { label: "Underpair", advice: "Check/Fold", reason: "Your pocket pair is counterfeited by the board." },
+    
     flush_draw_nut: { label: "Nut Flush Draw", advice: "Semi-Bluff", reason: "Ace-high flush draw! Huge equity, play aggressively." },
     flush_draw: { label: "Flush Draw", advice: "Call/Semi-Bluff", reason: "One card to flush. Call if odds are good." },
     straight_draw_oesd: { label: "Open-Ended Straight Draw", advice: "Aggressive", reason: "8 outs to a straight. Very strong draw." },
@@ -276,7 +294,7 @@ const evaluateHand = (cards) => {
   return ranks[0];
 };
 
-// --- 核心分析函数 ---
+// --- 核心分析函数 (Updated V4.3) ---
 const analyzeHandFeatures = (heroCards, communityCards) => {
   if (!heroCards[0] || !heroCards[1]) return null;
   
@@ -313,7 +331,10 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
   }
 
   // === 2. Post-flop Analysis (翻牌后) ===
+  const isRiver = board.length === 5;
   const allCards = [...heroCards, ...board];
+  
+  // 基础统计
   const suits = {};
   const ranks = [];
   allCards.forEach(c => {
@@ -326,59 +347,85 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
   const boardRanks = board.map(c => RANK_VALUES[c.rank]).sort((a,b)=>b-a);
   const maxBoardRank = boardRanks[0];
 
-  // A. Flush Draw
-  let flushDrawType = null;
-  const fdSuit = Object.keys(suits).find(s => suits[s] === 4);
-  if (fdSuit) {
-    const hasNutAttr = (heroCards[0].suit === fdSuit && h1_rank === 14) || (heroCards[1].suit === fdSuit && h2_rank === 14);
-    flushDrawType = hasNutAttr ? "flush_draw_nut" : "flush_draw";
+  // 1. Made Hands Detection (优先判定成牌)
+  const rankCounts = {};
+  ranks.forEach(r => rankCounts[r] = (rankCounts[r] || 0) + 1);
+  const countsArr = Object.values(rankCounts);
+  
+  // Flush
+  const flushSuitMade = Object.keys(suits).find(s => suits[s] >= 5);
+  // Full House (3+2 or 3+3)
+  const hasTripsTotal = countsArr.includes(3);
+  const hasQuads = countsArr.includes(4);
+  const hasFullHouse = (hasTripsTotal && countsArr.includes(2)) || (countsArr.filter(c => c >= 3).length >= 2);
+  
+  // Straight (Simple check)
+  let straightHigh = 0;
+  for (let i = 0; i <= uniqueRanks.length - 5; i++) {
+    const slice = uniqueRanks.slice(i, i + 5);
+    if (slice[0] - slice[4] === 4) { straightHigh = slice[0]; break; }
   }
+  // Wheel straight (A,2,3,4,5)
+  if (!straightHigh && uniqueRanks.includes(14) && uniqueRanks.includes(2) && uniqueRanks.includes(3) && uniqueRanks.includes(4) && uniqueRanks.includes(5)) straightHigh = 5;
 
-  // B. Straight Draw
-  let straightDrawType = null;
-  for (let i = 0; i <= uniqueRanks.length - 4; i++) {
-    const window = uniqueRanks.slice(i, i + 4);
-    const span = window[window.length - 1] - window[0];
-    if (span <= 4) { 
-      straightDrawType = (span === 3) ? "straight_draw_oesd" : "straight_draw_gutshot";
-    }
-  }
-
-  // C. Pairs
-  let pairType = "trash";
+  // --- Priority Level 1: Monsters & Strong Made Hands ---
+  if (straightHigh && flushSuitMade) return "made_straight_flush"; // Rare
+  if (hasQuads) return "made_quads";
+  if (hasFullHouse) return "made_full_house"; // 修复：优先返回满堂红
+  if (flushSuitMade) return "made_flush";
+  if (straightHigh) return "made_straight";
+  
+  // Hero Specific Trips check (If not FH, but Hero has Trips)
   const heroRankCounts = { [h1_rank]: 0, [h2_rank]: 0 };
   allCards.forEach(c => {
     const r = RANK_VALUES[c.rank];
     if (r === h1_rank) heroRankCounts[h1_rank]++;
     if (r === h2_rank) heroRankCounts[h2_rank]++;
   });
-
   const hitCount = Math.max(heroRankCounts[h1_rank], heroRankCounts[h2_rank]);
+  if (hitCount >= 3) return "monster"; // Trips
 
-  if (hitCount >= 3) pairType = "monster"; 
-  else if (hitCount === 2) {
-    if (isPair) {
-      pairType = h1 > maxBoardRank ? "top_pair" : "pocket_pair_below"; 
-    } else {
-      const pairRank = heroRankCounts[h1_rank] === 2 ? h1_rank : h2_rank;
-      if (pairRank === maxBoardRank) pairType = "top_pair";
-      else if (pairRank > boardRanks[boardRanks.length-1]) pairType = "middle_pair";
-      else pairType = "bottom_pair";
+  // --- Priority Level 2: Draws (Only if NOT River) ---
+  if (!isRiver) {
+    // Flush Draw
+    const fdSuit = Object.keys(suits).find(s => suits[s] === 4);
+    let flushDrawType = null;
+    if (fdSuit) {
+      const hasNutAttr = (heroCards[0].suit === fdSuit && h1_rank === 14) || (heroCards[1].suit === fdSuit && h2_rank === 14);
+      flushDrawType = hasNutAttr ? "flush_draw_nut" : "flush_draw";
     }
-  } else {
-    if (h1 > maxBoardRank && h2 > maxBoardRank) pairType = "overcards";
-    else pairType = "trash";
+
+    // Straight Draw
+    let straightDrawType = null;
+    for (let i = 0; i <= uniqueRanks.length - 4; i++) {
+      const window = uniqueRanks.slice(i, i + 4);
+      const span = window[window.length - 1] - window[0];
+      if (span <= 4) { 
+        straightDrawType = (span === 3) ? "straight_draw_oesd" : "straight_draw_gutshot";
+      }
+    }
+
+    if (flushDrawType && straightDrawType) return "combo_draw";
+    if (flushDrawType) return flushDrawType; // Returns "flush_draw_nut" or "flush_draw"
+    if (straightDrawType) return straightDrawType;
   }
 
-  if (flushDrawType && straightDrawType) return "combo_draw";
-  if (pairType === "monster") return "monster";
-  if (flushDrawType === "flush_draw_nut") return "flush_draw_nut";
-  if (straightDrawType === "straight_draw_oesd") return "straight_draw_oesd";
-  if (pairType === "top_pair") return "top_pair";
-  if (flushDrawType) return "flush_draw";
-  if (straightDrawType) return "straight_draw_gutshot";
+  // --- Priority Level 3: Pairs (Marginal) ---
+  if (hitCount === 2) {
+    if (isPair) {
+      return h1 > maxBoardRank ? "top_pair" : "pocket_pair_below"; 
+    } else {
+      const pairRank = heroRankCounts[h1_rank] === 2 ? h1_rank : h2_rank;
+      if (pairRank === maxBoardRank) return "top_pair";
+      if (pairRank > boardRanks[boardRanks.length-1]) return "middle_pair";
+      return "bottom_pair";
+    }
+  }
+
+  // Fallback
+  if (h1 > maxBoardRank && h2 > maxBoardRank) return "overcards";
   
-  return pairType; 
+  return "trash";
 };
 
 const CardIcon = ({ rank, suit, className = "" }) => {
@@ -763,7 +810,8 @@ function TexasHoldemAdvisor() {
       if (analysisData) {
         finalReason = analysisData.reason;
         // 对于极强的牌或极好的听牌，强制建议进攻，覆盖默认的赔率逻辑
-        if (analysisKey === 'monster' || analysisKey === 'pre_monster_pair' || analysisKey === 'combo_draw' || analysisKey === 'flush_draw_nut') {
+        // 修正：包含所有成牌 (Made Hands)
+        if (analysisKey.startsWith('made_') || analysisKey === 'monster' || analysisKey === 'pre_monster_pair' || analysisKey === 'combo_draw' || analysisKey === 'flush_draw_nut') {
            finalAdvice = analysisData.advice;
         }
         // 如果是垃圾牌，且目前建议不是弃牌（因为随机模拟可能偶尔胜率高），强制建议弃牌 (除非是诈唬模式)
