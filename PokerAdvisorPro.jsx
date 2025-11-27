@@ -7,10 +7,9 @@ const { createRoot } = ReactDOM;
 
 /**
  * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 4.3 Update:
- * 1. Fixed "Full House" recognition bug (修复满堂红识别问题).
- * 2. Disabled "Draw" advice on River (河牌圈不再提示听牌).
- * 3. Enhanced "Monster" detection to include all Made Hands (Flush/Straight/FH).
+ * Version 4.4 Update:
+ * 1. UI Refactor for Mobile: Moved action buttons (Fold/Call/All-In) to a dedicated row.
+ * 2. Buttons now take full width (flex-1) to prevent overlapping with labels.
  */
 
 // --- 常量定义 ---
@@ -19,7 +18,7 @@ const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const RANK_VALUES = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
 const STREETS = ['Pre-flop', 'Flop', 'Turn', 'River'];
 
-// --- 手牌分析建议数据集 (含翻牌前 & 翻牌后) ---
+// --- 手牌分析建议数据集 ---
 const HAND_ANALYSIS_DEFINITIONS = {
   zh: {
     // --- Pre-flop (翻牌前) ---
@@ -1040,25 +1039,29 @@ function TexasHoldemAdvisor() {
                         ${heroStack === 0 ? 'border-red-500 text-red-400 placeholder-red-700' : 'border-slate-700 text-yellow-400'}`} 
                     />
                  </div>
+                 
+                 {/* --- HERO ACTION ROW (Mobile Optimized) --- */}
                  <div>
-                    <div className="flex justify-between items-end mb-1">
+                    <div className="flex justify-between items-center mb-1">
                       <label className="text-xs text-slate-400">{t.bet}</label>
-                      <div className="flex gap-1">
+                    </div>
+                    
+                    {/* Buttons moved to their own row for max width */}
+                    <div className="flex gap-1 mb-1">
                         <button 
                           onClick={handleFold} 
-                          className="flex items-center gap-1 text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-0.5 rounded shadow-sm transition font-bold tracking-wider border border-slate-600"
+                          className="flex-1 flex items-center justify-center gap-1 text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 py-1.5 rounded shadow-sm transition font-bold tracking-wider border border-slate-600"
                         >
                            <Flag className="w-3 h-3" /> {t.btn_fold}
                         </button>
 
-                        {/* --- One Click Call Button --- */}
                         <button 
                            onClick={handleCall}
                            disabled={heroStack === 0}
-                           className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded shadow-sm transition font-bold tracking-wider
+                           className={`flex-1 flex items-center justify-center gap-1 text-[10px] py-1.5 rounded shadow-sm transition font-bold tracking-wider
                              ${isCallAllIn 
-                                ? 'bg-red-800 text-red-100 hover:bg-red-700 border border-red-600 animate-pulse' // All-In Style
-                                : 'bg-blue-600 text-white hover:bg-blue-500 border border-blue-500' // Call Style
+                                ? 'bg-red-800 text-red-100 hover:bg-red-700 border border-red-600 animate-pulse' 
+                                : 'bg-blue-600 text-white hover:bg-blue-500 border border-blue-500' 
                              }
                              ${heroStack === 0 ? 'opacity-50 cursor-not-allowed' : ''}
                            `}
@@ -1075,20 +1078,20 @@ function TexasHoldemAdvisor() {
                         <button 
                           onClick={() => handleHeroBetChange(heroStack)} 
                           disabled={heroStack === 0}
-                          className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded shadow-sm transition font-bold tracking-wider 
+                          className={`flex-1 flex items-center justify-center gap-1 text-[10px] py-1.5 rounded shadow-sm transition font-bold tracking-wider 
                             ${heroStack === 0 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 text-white'}`}
                         >
                            <Zap className="w-3 h-3 fill-current" /> {t.btn_allin}
                         </button>
-                      </div>
                     </div>
+
                     <input 
                       type="number" 
                       value={heroBet === 0 ? '' : heroBet} 
                       onChange={(e) => handleHeroBetChange(e.target.value)} 
                       disabled={heroStack === 0}
                       placeholder="0"
-                      className={`w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 font-mono transition focus:outline-none 
+                      className={`w-full bg-slate-950 border border-slate-700 rounded px-2 py-2 font-mono transition focus:outline-none 
                          ${heroStack === 0 ? 'opacity-50 cursor-not-allowed text-slate-500' : 'text-white focus:border-red-500'}`}
                     />
                  </div>
