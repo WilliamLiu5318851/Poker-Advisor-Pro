@@ -18,10 +18,10 @@ const { SUITS, RANKS, RANK_VALUES, STREETS } = CONSTANTS;
 
 /**
  * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 4.5 Update:
- * 1. Data Separation: Moved definitions to PokerData.js.
- * 2. Logic Optimization: Code is now much cleaner and focused on functionality.
- * 3. Mobile UI: Retained the optimized layout.
+ * Version 4.6 Fix:
+ * 1. Integrated with PokerData.js (Data Separation).
+ * 2. Applied Singleton Root Pattern to fix "createRoot" console warnings.
+ * 3. Kept all v4.5 logic (Hand Analysis, Smart Bet Sizing).
  */
 
 // --- Poker Logic Helpers ---
@@ -259,11 +259,8 @@ function TexasHoldemAdvisor() {
 
   // --- Logic for Call Button ---
   const maxOpponentBet = Math.max(0, ...players.map(p => p.bet));
-  const amountToCall = Math.max(0, maxOpponentBet); // The absolute amount Hero needs to have in 'bet' input
-  const isCallAction = amountToCall > heroBet; // Need to put more money?
-  
-  // Logic: Can we afford the call?
-  // If maxOpponentBet > heroStack (Total Stack), then we can only go All-In (set bet to heroStack)
+  const amountToCall = Math.max(0, maxOpponentBet); 
+  const isCallAction = amountToCall > heroBet; 
   const safeCallAmount = Math.min(amountToCall, heroStack);
   const isCallAllIn = safeCallAmount >= heroStack;
   
@@ -569,22 +566,18 @@ function TexasHoldemAdvisor() {
         };
       }
 
-      // --- 位置 C: 集成调用分析函数 ---
+      // --- Integration: Hand Analysis ---
       const analysisKey = analyzeHandFeatures(heroHand, communityCards);
       const analysisData = analysisKey ? HAND_ANALYSIS_DEFINITIONS[lang][analysisKey] : null;
 
       let finalAdvice = t[adviceKey];
       let finalReason = t[reasonKey];
 
-      // 如果有具体的牌型分析，覆盖Reason，有时覆盖Advice
       if (analysisData) {
         finalReason = analysisData.reason;
-        // 对于极强的牌或极好的听牌，强制建议进攻，覆盖默认的赔率逻辑
-        // 修正：包含所有成牌 (Made Hands)
         if (analysisKey.startsWith('made_') || analysisKey === 'monster' || analysisKey === 'pre_monster_pair' || analysisKey === 'combo_draw' || analysisKey === 'flush_draw_nut') {
            finalAdvice = analysisData.advice;
         }
-        // 如果是垃圾牌，且目前建议不是弃牌（因为随机模拟可能偶尔胜率高），强制建议弃牌 (除非是诈唬模式)
         if (analysisKey === 'pre_trash' && strategy !== 'maniac' && callAmount > 0) {
             finalAdvice = t.advice_fold;
         }
@@ -596,7 +589,7 @@ function TexasHoldemAdvisor() {
         requiredEquity: requiredEquity.toFixed(1),
         advice: finalAdvice,
         reason: finalReason,
-        handTypeLabel: analysisData ? analysisData.label : null, // 传递给UI显示
+        handTypeLabel: analysisData ? analysisData.label : null,
         betSizes,
         isBluff: adviceKey.includes('bluff')
       });
@@ -609,7 +602,7 @@ function TexasHoldemAdvisor() {
   const CardSelector = () => {
     if (!selectingFor) return null;
 
-    // Dynamic Title for Selector
+    // Dynamic Title
     let title = t.selectCard;
     if (selectingFor.type === 'hero') title = `${t.selecting_hero} ${selectingFor.index + 1}/2`;
     if (selectingFor.type === 'board') {
@@ -644,13 +637,11 @@ function TexasHoldemAdvisor() {
                           const h = [...heroHand];
                           h[selectingFor.index] = card;
                           setHeroHand(h);
-                          // Auto-advance Hero: 0 -> 1 -> Close
                           if (selectingFor.index === 0) nextState = { type: 'hero', index: 1 };
                         } else {
                           const b = [...communityCards];
                           b[selectingFor.index] = card;
                           setCommunityCards(b);
-                          // Auto-advance Board: Flop 0->1->2->Close
                           if (selectingFor.index < 2) nextState = { type: 'board', index: selectingFor.index + 1 };
                         }
                         
@@ -670,7 +661,6 @@ function TexasHoldemAdvisor() {
     );
   };
 
-  // Settlement UI Helpers
   const getPotSplit = () => {
     const heroTotal = heroTotalContributed + heroBet;
     const sidePot = players.reduce((sum, p) => {
