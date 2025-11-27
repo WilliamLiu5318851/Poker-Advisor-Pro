@@ -1,13 +1,18 @@
-// 1. 圖標庫 (從 index.html 的 importmap 加載)
+// 1. 图标库
 import { RefreshCw, Trophy, Users, Globe, Brain, Info, DollarSign, ArrowRight, Layers, HandMetal, AlertTriangle, CheckCircle, XCircle, Divide, Flame, Skull, Zap, RotateCcw, Settings, X, Coins, ShieldCheck, MousePointerClick, Flag, Lightbulb, CheckSquare } from 'lucide-react';
 
-// 2. 從全局變量中獲取 React 功能
+// 2. 全局 React
 const { useState, useEffect, useMemo } = React;
 const { createRoot } = ReactDOM;
 
-// 3. 從 PokerData.js 獲取數據
+// 3. 数据层 (带完整 Fallback)
 const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTS } = window.PokerData || {
-  CONSTANTS: { SUITS: [], RANKS: [], RANK_VALUES: {}, STREETS: [] },
+  CONSTANTS: { 
+    SUITS: ['s', 'h', 'd', 'c'],
+    RANKS: ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'],
+    RANK_VALUES: { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 },
+    STREETS: ['Pre-flop', 'Flop', 'Turn', 'River']
+  },
   HAND_ANALYSIS_DEFINITIONS: { zh: {}, en: {} },
   TEXTS: { zh: {}, en: {} }
 };
@@ -15,71 +20,101 @@ const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTS } = window.PokerData || {
 const { SUITS, RANKS, RANK_VALUES, STREETS } = CONSTANTS;
 
 /**
- * 德州撲克助手 Pro (Texas Hold'em Advisor Pro)
- * Version 4.7 Fix:
- * 1. Fixed Straight Flush detection bug caused by incorrect array sorting order (Ascending vs Descending).
- * 2. Implemented a rigorous `isStraightFlush` check that filters cards by suit before checking for straights.
- * 3. Ensures "Made Straight Flush" is correctly identified in the Hand Analysis label.
+ * 德州扑克助手 Pro (Texas Hold'em Advisor Pro)
+ * Version 4.8 Fix:
+ * 1. Unified Straight Flush logic for both Equity Calculator and Hand Analysis.
+ * 2. Fixed the issue where "Straight Flush" was labeled as "Flush".
+ * 3. Ensures Ace is treated correctly as both 14 and 1 for all Straight/SF checks.
  */
 
-// --- Poker Logic Helpers (Monte Carlo Engine - Unchanged & Correct) ---
+// --- 核心辅助函数：判断是否为同花顺 ---
+// 返回最高顺子牌值，若无则返回 0
+const getStraightFlushHigh = (cards) => {
+  if (cards.length < 5) return 0;
+
+  // 1. 先按花色分组
+  const suits = {};
+  cards.forEach(c => {
+    if (!suits[c.suit]) suits[c.suit] = [];
+    suits[c.suit].push(RANK_VALUES[c.rank]);
+  });
+
+  // 2. 检查是否有同花
+  const flushSuit = Object.keys(suits).find(s => suits[s].length >= 5);
+  if (!flushSuit) return 0;
+
+  // 3. 在同花牌中找顺子
+  let ranks = suits[flushSuit].sort((a, b) => b - a); // 降序: 14, 13, ... 2
+  const uniqueRanks = [...new Set(ranks)];
+  
+  // 处理 A-5-4-3-2 (Wheel)
+  if (uniqueRanks.includes(14)) uniqueRanks.push(1); // 把 A 作为 1 加入末尾
+
+  for (let i = 0; i <= uniqueRanks.length - 5; i++) {
+    const window = uniqueRanks.slice(i, i + 5);
+    // 检查是否连续: High - Low == 4
+    if (window[0] - window[4] === 4) {
+      return window[0]; // 返回顺子的最大牌
+    }
+  }
+  
+  return 0;
+};
+
+// --- 核心牌力评估 (Monte Carlo 使用) ---
 const evaluateHand = (cards) => {
   if (!cards || cards.length < 5) return 0;
+  
+  // 1. 优先检查同花顺 (最高优先级)
+  const sfHigh = getStraightFlushHigh(cards);
+  if (sfHigh > 0) return 8000000 + sfHigh;
+
+  // 2. 常规牌力计算
   const sorted = [...cards].sort((a, b) => RANK_VALUES[b.rank] - RANK_VALUES[a.rank]);
   const ranks = sorted.map(c => RANK_VALUES[c.rank]);
-  const suits = sorted.map(c => c.suit);
   const counts = {};
   ranks.forEach(r => counts[r] = (counts[r] || 0) + 1);
   const countValues = Object.values(counts);
   
-  const suitCounts = {};
-  suits.forEach(s => suitCounts[s] = (suitCounts[s] || 0) + 1);
-  let flushSuit = Object.keys(suitCounts).find(s => suitCounts[s] >= 5);
-  let isFlush = !!flushSuit;
-  let flushRanks = isFlush ? sorted.filter(c => c.suit === flushSuit).map(c => RANK_VALUES[c.rank]) : [];
+  // 四条 / 葫芦
+  if (countValues.includes(4)) {
+      const quadRank = parseInt(Object.keys(counts).find(k => counts[k] === 4));
+      const kicker = ranks.find(r => r !== quadRank);
+      return 7000000 + (quadRank * 100) + kicker;
+  }
+  if (countValues.includes(3) && countValues.includes(2)) {
+      const tripRank = parseInt(Object.keys(counts).find(k => counts[k] === 3));
+      // 简单处理：双三条取大
+      return 6000000 + (tripRank * 100); 
+  }
 
-  const uniqueRanks = Array.from(new Set(ranks)).sort((a, b) => b - a);
-  let straightHigh = 0;
+  // 同花
+  const suits = {};
+  cards.forEach(c => suits[c.suit] = (suits[c.suit] || 0) + 1);
+  const flushSuit = Object.keys(suits).find(s => suits[s] >= 5);
+  if (flushSuit) {
+      const flushRanks = cards.filter(c => c.suit === flushSuit)
+                              .map(c => RANK_VALUES[c.rank])
+                              .sort((a,b) => b-a);
+      return 5000000 + flushRanks[0];
+  }
+
+  // 顺子
+  const uniqueRanks = [...new Set(ranks)];
+  if (uniqueRanks.includes(14)) uniqueRanks.push(1); // Wheel check
   for (let i = 0; i <= uniqueRanks.length - 5; i++) {
-    const slice = uniqueRanks.slice(i, i + 5);
-    if (slice[0] - slice[4] === 4) { straightHigh = slice[0]; break; }
-  }
-  if (!straightHigh && uniqueRanks.includes(14) && uniqueRanks.includes(2) && uniqueRanks.includes(3) && uniqueRanks.includes(4) && uniqueRanks.includes(5)) straightHigh = 5;
-
-  // Rigorous SF Check for MC
-  let isStraightFlush = false;
-  if (isFlush) {
-      // Check straight only within flush ranks
-      const uniqueFlushRanks = Array.from(new Set(flushRanks)).sort((a, b) => b - a);
-      for (let i = 0; i <= uniqueFlushRanks.length - 5; i++) {
-          if (uniqueFlushRanks[i] - uniqueFlushRanks[i+4] === 4) {
-              isStraightFlush = true;
-              straightHigh = uniqueFlushRanks[i];
-              break;
-          }
-      }
-      if (!isStraightFlush && uniqueFlushRanks.includes(14) && uniqueFlushRanks.includes(5)) {
-          // Wheel SF
-          const wheelParts = [14, 5, 4, 3, 2];
-          if (wheelParts.every(r => uniqueFlushRanks.includes(r))) {
-              isStraightFlush = true;
-              straightHigh = 5;
-          }
-      }
+      if (uniqueRanks[i] - uniqueRanks[i+4] === 4) return 4000000 + uniqueRanks[i];
   }
 
-  if (isStraightFlush) return 8000000 + straightHigh;
-  if (countValues.includes(4)) return 7000000;
-  if (countValues.includes(3) && countValues.includes(2)) return 6000000;
-  if (isFlush) return 5000000 + flushRanks[0];
-  if (straightHigh) return 4000000 + straightHigh;
-  if (countValues.includes(3)) return 3000000;
-  if (countValues.filter(c => c === 2).length >= 2) return 2000000;
-  if (countValues.includes(2)) return 1000000;
+  // 三条 / 两对 / 一对 / 高牌
+  if (countValues.includes(3)) return 3000000 + parseInt(Object.keys(counts).find(k => counts[k] === 3));
+  if (countValues.filter(c => c === 2).length >= 2) return 2000000; // 简化：未细分对子大小
+  if (countValues.includes(2)) return 1000000 + parseInt(Object.keys(counts).find(k => counts[k] === 2));
+  
   return ranks[0];
 };
 
-// --- 核心分析函數 (UI Label Logic) ---
+// --- 核心分析函数 (UI 显示逻辑) ---
 const analyzeHandFeatures = (heroCards, communityCards) => {
   if (!heroCards[0] || !heroCards[1]) return null;
   
@@ -90,8 +125,9 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
   const isSuited = heroCards[0].suit === heroCards[1].suit;
   const isPair = h1 === h2;
 
-  // === 1. Pre-flop Analysis ===
   const board = communityCards.filter(Boolean);
+  
+  // === 1. Pre-flop Analysis ===
   if (board.length === 0) {
       if (isPair) {
           if (h1 >= 12) return "pre_monster_pair";
@@ -113,77 +149,43 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
   const isRiver = board.length === 5;
   const allCards = [...heroCards, ...board];
   
-  // Basic Stats
-  const suits = {};
-  const ranks = [];
-  allCards.forEach(c => {
-    suits[c.suit] = (suits[c.suit] || 0) + 1;
-    ranks.push(RANK_VALUES[c.rank]);
-  });
-  
-  // FIX: Sort Descending (High to Low) for correct straight math
-  ranks.sort((a, b) => b - a);
+  // --- 优先检查：同花顺 (复用相同的强逻辑) ---
+  const sfHigh = getStraightFlushHigh(allCards);
+  if (sfHigh > 0) return "made_straight_flush";
+
+  // 基础统计
+  const ranks = allCards.map(c => RANK_VALUES[c.rank]).sort((a, b) => b - a);
   const uniqueRanks = [...new Set(ranks)];
   
-  const boardRanks = board.map(c => RANK_VALUES[c.rank]).sort((a,b)=>b-a);
-  const maxBoardRank = boardRanks[0];
-
   const rankCounts = {};
   ranks.forEach(r => rankCounts[r] = (rankCounts[r] || 0) + 1);
   const countsArr = Object.values(rankCounts);
   
-  // Flush Check
+  const suits = {};
+  allCards.forEach(c => suits[c.suit] = (suits[c.suit] || 0) + 1);
   const flushSuitMade = Object.keys(suits).find(s => suits[s] >= 5);
-  
-  // Straight Check
+
+  // 顺子检测
   let straightHigh = 0;
-  // Handle Wheel (A-2-3-4-5) logic for Straight
   let checkRanks = [...uniqueRanks];
-  if (uniqueRanks.includes(14)) checkRanks.push(1); // Add Ace as 1 at the end
+  if (uniqueRanks.includes(14)) checkRanks.push(1); 
   
   for (let i = 0; i <= checkRanks.length - 5; i++) {
-    // Current window
-    const slice = checkRanks.slice(i, i + 5);
-    // Since we are Descending: slice[0] (High) - slice[4] (Low) === 4
-    if (slice[0] - slice[4] === 4) { 
-        straightHigh = slice[0]; 
+    if (checkRanks[i] - checkRanks[i+4] === 4) { 
+        straightHigh = checkRanks[i]; 
         break; 
     }
   }
 
-  // --- Priority Level 1: Monsters & Strong Made Hands ---
-  
-  // 1. Straight Flush Check (Rigorous)
-  if (flushSuitMade) {
-      const flushCards = allCards.filter(c => c.suit === flushSuitMade)
-                                 .map(c => RANK_VALUES[c.rank])
-                                 .sort((a, b) => b - a);
-      const uniqueFlushRanks = [...new Set(flushCards)];
-      let sfHigh = 0;
-      
-      // Standard SF
-      for (let i = 0; i <= uniqueFlushRanks.length - 5; i++) {
-         if (uniqueFlushRanks[i] - uniqueFlushRanks[i+4] === 4) { sfHigh = uniqueFlushRanks[i]; break; }
-      }
-      // Wheel SF
-      if (!sfHigh && uniqueFlushRanks.includes(14) && uniqueFlushRanks.includes(2)) {
-          const wheel = [14, 5, 4, 3, 2];
-          if (wheel.every(r => uniqueFlushRanks.includes(r))) sfHigh = 5;
-      }
-
-      if (sfHigh) return "made_straight_flush";
-  }
-
-  const hasTripsTotal = countsArr.includes(3);
+  // --- 成牌判定 ---
   const hasQuads = countsArr.includes(4);
-  const hasFullHouse = (hasTripsTotal && countsArr.includes(2)) || (countsArr.filter(c => c >= 3).length >= 2);
+  const hasFullHouse = (countsArr.includes(3) && countsArr.includes(2)) || (countsArr.filter(c => c >= 3).length >= 2);
 
   if (hasQuads) return "made_quads";
   if (hasFullHouse) return "made_full_house";
   if (flushSuitMade) return "made_flush";
   if (straightHigh) return "made_straight";
   
-  // Hero Specific Trips
   const heroRankCounts = { [h1_rank]: 0, [h2_rank]: 0 };
   allCards.forEach(c => {
     const r = RANK_VALUES[c.rank];
@@ -193,7 +195,7 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
   const hitCount = Math.max(heroRankCounts[h1_rank], heroRankCounts[h2_rank]);
   if (hitCount >= 3) return "monster"; 
 
-  // --- Priority Level 2: Draws ---
+  // --- 听牌判定 ---
   if (!isRiver) {
     const fdSuit = Object.keys(suits).find(s => suits[s] === 4);
     let flushDrawType = null;
@@ -203,23 +205,15 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
     }
 
     let straightDrawType = null;
-    // Straight Draw Detection (simplified for advisor text)
-    // We check uniqueRanks (descending)
-    // If we have 4 cards within a span of 5 (Gutshot) or 4 (OESD)
-    // Wheel Draw logic: Ace is 14. We need to check low end.
     let drawRanks = [...uniqueRanks];
-    if (uniqueRanks.includes(14)) drawRanks.push(1); // Ace as low
+    if (uniqueRanks.includes(14)) drawRanks.push(1);
 
-    // Simple window scan for draws
-    // OESD: 4 consecutive cards (e.g., 5,6,7,8 -> gap 3)
-    // Gutshot: 4 cards with gap 4 (e.g., 5,6,8,9)
     for (let i = 0; i <= drawRanks.length - 4; i++) {
         const window = drawRanks.slice(i, i + 4);
-        const span = window[0] - window[window.length - 1]; // Descending: High - Low
+        const span = window[0] - window[window.length - 1];
         
         if (span <= 4) {
             if (span === 3) {
-                // 4 cards in a row
                 // Special case: A-2-3-4 (1 is low) -> only 5 helps -> Gutshot
                 if (window.includes(1)) straightDrawType = "straight_draw_gutshot"; 
                 else straightDrawType = "straight_draw_oesd";
@@ -235,7 +229,10 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
     if (straightDrawType) return straightDrawType;
   }
 
-  // --- Priority Level 3: Pairs ---
+  // --- 对子判定 ---
+  const boardRanks = board.map(c => RANK_VALUES[c.rank]).sort((a,b)=>b-a);
+  const maxBoardRank = boardRanks[0];
+  
   if (hitCount === 2) {
     if (isPair) {
       return h1 > maxBoardRank ? "top_pair" : "pocket_pair_below"; 
@@ -589,10 +586,11 @@ function TexasHoldemAdvisor() {
         }
       }
 
-      // Hybrid Bet Sizing
+      // --- 核心修改：混合权重下注算法 (Hybrid Bet Sizing) ---
       if (adviceKey.includes('raise') || adviceKey.includes('allin')) {
-        const p = totalPot;
-        const s = heroStack;
+        const p = totalPot; // 底池
+        const s = heroStack; // 剩余筹码
+        
         const cap = (val) => Math.min(val, s);
 
         let smallBase, medBase, largeBase;
@@ -618,7 +616,7 @@ function TexasHoldemAdvisor() {
         };
       }
 
-      // --- Integration: Hand Analysis ---
+      // --- 集成: 手牌特征分析 ---
       const analysisKey = analyzeHandFeatures(heroHand, communityCards);
       const analysisData = analysisKey ? HAND_ANALYSIS_DEFINITIONS[lang][analysisKey] : null;
 
@@ -654,6 +652,7 @@ function TexasHoldemAdvisor() {
   const CardSelector = () => {
     if (!selectingFor) return null;
 
+    // Dynamic Title
     let title = t.selectCard;
     if (selectingFor.type === 'hero') title = `${t.selecting_hero} ${selectingFor.index + 1}/2`;
     if (selectingFor.type === 'board') {
@@ -1011,7 +1010,7 @@ function TexasHoldemAdvisor() {
                      result.advice.includes('Fold') ? 'text-red-400' : 'text-emerald-400'
                    }`}>{result.advice}</h2>
                    
-                   {/* --- 位置 D: 顯示牌型分析結果 --- */}
+                   {/* --- 位置 D: 显示牌型分析结果 --- */}
                    {result.handTypeLabel && (
                      <div className="inline-block bg-slate-700 text-blue-200 text-xs px-2 py-0.5 rounded my-1 border border-blue-500/30">
                        <span className="flex items-center gap-1"><Lightbulb className="w-3 h-3"/> {result.handTypeLabel}</span>
@@ -1128,7 +1127,7 @@ function TexasHoldemAdvisor() {
   }
 }
 
-// ⚠️ 核心修復邏輯：Singleton Root Pattern (單例模式)
+// ⚠️ 核心修复逻辑：Singleton Root Pattern (单例模式)
 const container = document.getElementById('root');
 if (container) {
   if (!container._reactRoot) {
