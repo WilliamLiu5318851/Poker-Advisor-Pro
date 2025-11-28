@@ -1,6 +1,6 @@
 /**
- * Poker Advisor Pro - Data Layer (v6.7 - i18n Fix)
- * 修复：位置策略 (POSITIONS) 和纹理分析 (TEXTURE_STRATEGIES) 现在支持双语切换
+ * Poker Advisor Pro - Data Layer (v6.8 - Strategy Profiles)
+ * 核心升级：为三种策略模式定义了截然不同的参数配置，使其性格分明
  */
 
 window.PokerData = {};
@@ -13,7 +13,35 @@ window.PokerData.CONSTANTS = {
   STREETS: ['Pre-flop', 'Flop', 'Turn', 'River']
 };
 
-// --- B. 位置与起手牌策略 (双语版) ---
+// --- B. 策略风格配置文件 (NEW) ---
+window.PokerData.STRATEGY_PROFILES = {
+  conservative: {
+    label_zh: "保守型 (Tight)",
+    label_en: "Conservative",
+    equity_buffer: 1.15, // 需要比底池赔率高 15% 的胜率才跟注
+    raise_threshold: 70, // 只有 70% 以上胜率才加注
+    bluff_equity: 100,   // 绝不纯诈唬 (设为100即不可能触发)
+    bet_sizing: { small: 0.33, med: 0.5, large: 0.66 } // 倾向于下小注控池
+  },
+  aggressive: {
+    label_zh: "激进型 (Aggressive)",
+    label_en: "Aggressive",
+    equity_buffer: 0.95, // 稍微放宽跟注标准
+    raise_threshold: 50, // 50% 胜率就开始主动进攻
+    bluff_equity: 30,    // 30% 胜率(听牌)时可能进行半诈唬
+    bet_sizing: { small: 0.5, med: 0.75, large: 1.0 } // 标准价值下注
+  },
+  maniac: {
+    label_zh: "疯鱼型 (Maniac)",
+    label_en: "Maniac",
+    equity_buffer: 0.7,  // 极其松的跟注标准
+    raise_threshold: 30, // 30% 胜率就敢加注 (高波动)
+    bluff_equity: 15,    // 垃圾牌也敢诈唬
+    bet_sizing: { small: 0.75, med: 1.2, large: 2.0 } // 经常超池下注给压力
+  }
+};
+
+// --- C. 位置与起手牌策略 (双语版) ---
 window.PokerData.POSITIONS = {
   zh: {
     EP: { 
@@ -69,7 +97,7 @@ window.PokerData.POSITIONS = {
   }
 };
 
-// --- C. 牌面纹理定义 (宏观 - 双语) ---
+// --- D. 牌面纹理定义 (宏观 - 双语) ---
 window.PokerData.BOARD_TEXTURES = {
   zh: {
     dry: { label: "干燥牌面 (Dry)", features: ["杂色", "不连张"], strategy_adjustment: "high_fold_equity" },
@@ -81,10 +109,10 @@ window.PokerData.BOARD_TEXTURES = {
   }
 };
 
-// --- D. 牌面纹理新手教学 (无 UI 使用暂略，保留结构) ---
+// --- E. 牌面纹理新手教学 (Placeholder) ---
 window.PokerData.TEXTURE_EXPLANATION = { zh: {}, en: {} };
 
-// --- E. 数学概率与补牌速查表 ---
+// --- F. 数学概率与补牌速查表 ---
 window.PokerData.PROBABILITIES = {
   flop_hit: {
     pocket_pair_to_set: { label: "中三条 (Set)", prob: 12, note: "8中1" },
@@ -100,12 +128,6 @@ window.PokerData.PROBABILITIES = {
     flush_draw_nut: { label: "坚果花听牌 (Nut FD)", outs: 9, equity_flop: 36, advice: "极强！有摊牌价值+听牌价值" },
     combo_draw: { label: "双重听牌 (Combo Draw)", outs: 15, equity_flop: 54, advice: "超级强牌！直接 All-in！" }
   }
-};
-
-// --- F. 策略参数配置 ---
-window.PokerData.STRATEGY_CONFIG = {
-  preflop: { open_raise_base: 3.0, iso_raise_per_limper: 1.0, min_equity_to_call: 33 },
-  postflop: { cbet_dry: 0.33, cbet_wet: 0.66, value_bet: 0.75, bluff_raise: 3.0 }
 };
 
 // --- G. 手牌分析库 ---
@@ -235,10 +257,10 @@ window.PokerData.TEXTS = {
     bet_placeholder: '输入下注额',
     players: '对手列表',
     betSizing: '智能下注建议',
-    bet_size_small: '小注 (1/3)',
-    bet_size_med: '中注 (2/3)',
-    bet_size_large: '满池 (Pot)',
-    bet_size_over: '超池 (Overbet)',
+    bet_size_small: '小注',
+    bet_size_med: '中注',
+    bet_size_large: '大注',
+    bet_size_over: '超池',
     deck_info: '模拟使用的牌副数 (标准1副)',
     buy_in_info: '重买时的默认筹码量',
     
@@ -307,9 +329,9 @@ window.PokerData.TEXTS = {
     bet_placeholder: 'Bet Amount',
     players: 'Opponents',
     betSizing: 'Bet Sizing',
-    bet_size_small: 'Small (1/3)',
-    bet_size_med: 'Med (2/3)',
-    bet_size_large: 'Pot',
+    bet_size_small: 'Small',
+    bet_size_med: 'Medium',
+    bet_size_large: 'Large',
     bet_size_over: 'Overbet',
     deck_info: 'Number of decks for sim',
     buy_in_info: 'Default rebuy amount',
