@@ -6,8 +6,8 @@ import { RefreshCw, Trophy, Users, Brain, Info, ArrowRight, Flame, Zap, Settings
 const PokerData = window.PokerData || { 
   CONSTANTS: { SUITS: [], RANKS: [], RANK_VALUES: {}, STREETS: [] },
   HAND_ANALYSIS_DEFINITIONS: { zh: {}, en: {} },
-  TEXTURE_STRATEGIES: {},
-  POSITIONS: {},
+  TEXTURE_STRATEGIES: { zh: {}, en: {} }, // 修复：双语结构
+  POSITIONS: { zh: {}, en: {} }, // 修复：双语结构
   BOARD_TEXTURES: {},
   TEXTURE_EXPLANATION: {},
   PROBABILITIES: { outs_lookup: {} },
@@ -18,8 +18,8 @@ const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTURE_STRATEGIES, POSITIONS, BOA
 const { SUITS, RANKS, RANK_VALUES } = CONSTANTS;
 
 /**
- * 德州扑克助手 Pro (v6.5 - Position UX Enhanced)
- * 修复：位置选择改为“单按钮+详细菜单”模式，对新手更友好
+ * 德州扑克助手 Pro (v6.7 - i18n Fix)
+ * 修复：解决英文模式下，位置选择和纹理分析依然显示中文的问题
  */
 
 // --- 核心算法 ---
@@ -196,7 +196,7 @@ function TexasHoldemAdvisor() {
   const [lang, setLang] = useState('zh');
   const [strategy, setStrategy] = useState('conservative'); 
   const [showSettings, setShowSettings] = useState(false);
-  const [showPositionSelector, setShowPositionSelector] = useState(false); // 新增位置选择器状态
+  const [showPositionSelector, setShowPositionSelector] = useState(false);
   const [heroPosition, setHeroPosition] = useState(null); 
   
   const [deckCount, setDeckCount] = useState(1);
@@ -271,10 +271,12 @@ function TexasHoldemAdvisor() {
       const textureKey = textureRes.pattern;
       const textureType = textureRes.type;
 
-      // 3. 数据获取
+      // 3. 数据获取 (关键修复：根据 lang 获取对应语言数据)
       const analysisData = analysisKey ? HAND_ANALYSIS_DEFINITIONS[lang][analysisKey] : null;
-      const textureStrategy = textureKey ? TEXTURE_STRATEGIES[textureKey] : null;
-      const posData = heroPosition ? POSITIONS[heroPosition] : null;
+      // 修复：TEXTURE_STRATEGIES 现在是双语结构，需通过 [lang] 访问
+      const textureStrategy = textureKey ? TEXTURE_STRATEGIES[lang][textureKey] : null;
+      // 修复：POSITIONS 现在是双语结构，需通过 [lang] 访问
+      const posData = heroPosition ? POSITIONS[lang][heroPosition] : null;
       
       // 4. 生成建议
       let adviceKey = 'advice_fold';
@@ -488,7 +490,7 @@ function TexasHoldemAdvisor() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-10">
       <div className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-30 shadow-md flex justify-between items-center">
-         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v6.5</span></div>
+         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v6.7</span></div>
          <div className="flex gap-2">
             <button onClick={() => setStrategy(s => s==='conservative'?'aggressive':s==='aggressive'?'maniac':'conservative')} className={`px-3 py-1.5 rounded-full border flex gap-1 items-center text-xs ${getStrategyStyle()}`}>{strategy==='maniac'&&<Flame className="w-3 h-3"/>}{getStrategyLabel()}</button>
             <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-800 rounded-full border border-slate-700"><Settings className="w-4 h-4"/></button>
@@ -530,13 +532,13 @@ function TexasHoldemAdvisor() {
          <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-xs text-slate-400 font-bold flex gap-1"><MapPin className="w-3 h-3"/> {t.my_position}</span>
-              {/* 修复：使用单按钮触发详细位置选择菜单 */}
               <button 
                 onClick={() => setShowPositionSelector(true)} 
                 className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded border border-slate-700 transition"
               >
                 <span className={`text-xs ${heroPosition ? 'text-blue-400 font-bold' : 'text-slate-500'}`}>
-                  {heroPosition ? POSITIONS[heroPosition].label : t.select_position}
+                  {/* 修复：根据当前语言 [lang] 显示位置名称 */}
+                  {heroPosition ? POSITIONS[lang][heroPosition].label : t.select_position}
                 </span>
                 <ChevronDown className="w-3 h-3 text-slate-500"/>
               </button>
@@ -669,7 +671,7 @@ function TexasHoldemAdvisor() {
 
       <CardSelector />
       
-      {/* 修复：位置选择器弹窗 (Position Selector Modal) */}
+      {/* 修复：位置选择器弹窗 (支持双语) */}
       {showPositionSelector && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowPositionSelector(false)}>
           <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -679,7 +681,8 @@ function TexasHoldemAdvisor() {
              </div>
              <div className="space-y-3">
                {['EP', 'MP', 'LP', 'BLINDS'].map(key => {
-                 const data = POSITIONS[key];
+                 // 修复：根据 lang 动态获取数据
+                 const data = POSITIONS[lang][key];
                  return (
                    <button
                      key={key}
@@ -717,8 +720,8 @@ function TexasHoldemAdvisor() {
                      <p className="text-[10px] text-slate-500 mt-1">{t.buy_in_info}</p>
                   </div>
                   <div className="p-3 bg-slate-900 rounded text-xs text-slate-500 border border-slate-700">
-                     <p>GTO Engine v6.5 Active</p>
-                     <p className="mt-1 text-emerald-500">• Position UX Enhanced</p>
+                     <p>GTO Engine v6.7 Active</p>
+                     <p className="mt-1 text-emerald-500">• i18n Fixes Applied</p>
                   </div>
                </div>
             </div>
