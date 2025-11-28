@@ -6,20 +6,20 @@ import { RefreshCw, Trophy, Users, Brain, Info, ArrowRight, Flame, Zap, Settings
 const PokerData = window.PokerData || { 
   CONSTANTS: { SUITS: [], RANKS: [], RANK_VALUES: {}, STREETS: [] },
   HAND_ANALYSIS_DEFINITIONS: { zh: {}, en: {} },
-  TEXTURE_STRATEGIES: { zh: {}, en: {} }, // 修复：双语结构
-  POSITIONS: { zh: {}, en: {} }, // 修复：双语结构
+  TEXTURE_STRATEGIES: { zh: {}, en: {} },
+  POSITIONS: { zh: {}, en: {} },
+  STRATEGY_PROFILES: {}, // New
   BOARD_TEXTURES: {},
-  TEXTURE_EXPLANATION: {},
   PROBABILITIES: { outs_lookup: {} },
   STRATEGY_CONFIG: { preflop: {}, postflop: {} },
   TEXTS: { zh: {}, en: {} }
 };
-const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTURE_STRATEGIES, POSITIONS, BOARD_TEXTURES, TEXTURE_EXPLANATION, PROBABILITIES, STRATEGY_CONFIG, TEXTS } = PokerData;
+const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTURE_STRATEGIES, POSITIONS, STRATEGY_PROFILES, BOARD_TEXTURES, PROBABILITIES, STRATEGY_CONFIG, TEXTS } = PokerData;
 const { SUITS, RANKS, RANK_VALUES } = CONSTANTS;
 
 /**
- * 德州扑克助手 Pro (v6.7 - i18n Fix)
- * 修复：解决英文模式下，位置选择和纹理分析依然显示中文的问题
+ * 德州扑克助手 Pro (v6.8 - Differentiated Strategies)
+ * 修复：三种策略模式（保守/激进/疯鱼）现在拥有截然不同的胜率阈值和下注尺度
  */
 
 // --- 核心算法 ---
@@ -271,46 +271,45 @@ function TexasHoldemAdvisor() {
       const textureKey = textureRes.pattern;
       const textureType = textureRes.type;
 
-      // 3. 数据获取 (关键修复：根据 lang 获取对应语言数据)
+      // 3. 数据获取
       const analysisData = analysisKey ? HAND_ANALYSIS_DEFINITIONS[lang][analysisKey] : null;
-      // 修复：TEXTURE_STRATEGIES 现在是双语结构，需通过 [lang] 访问
       const textureStrategy = textureKey ? TEXTURE_STRATEGIES[lang][textureKey] : null;
-      // 修复：POSITIONS 现在是双语结构，需通过 [lang] 访问
       const posData = heroPosition ? POSITIONS[lang][heroPosition] : null;
       
-      // 4. 生成建议
+      // 4. 生成建议 (核心修复：引入差异化配置文件)
+      const profile = STRATEGY_PROFILES[strategy] || STRATEGY_PROFILES['conservative'];
+      
       let adviceKey = 'advice_fold';
       let reasonKey = 'reason_odds';
 
-      let requiredEquity = potOdds * 1.1; 
-      const isManiac = strategy === 'maniac';
+      // 根据策略计算所需的动态胜率 (保守型需要更高胜率，疯鱼型需要更低)
+      let requiredEquity = potOdds * profile.equity_buffer; 
 
-      if (parseFloat(spr) < 1.5 && equity > (isManiac ? 15 : 30)) {
-        adviceKey = isManiac ? 'advice_allin_bluff' : 'advice_allin';
+      if (parseFloat(spr) < 1.5 && equity > (strategy === 'maniac' ? 15 : 30)) {
+        adviceKey = strategy === 'maniac' ? 'advice_allin_bluff' : 'advice_allin';
         reasonKey = 'reason_spr_low';
       } else if (callAmount === 0) {
-        if (equity > 65) {
+        // 主动下注逻辑
+        if (equity > profile.raise_threshold) { // 使用 profile.raise_threshold
           adviceKey = 'advice_raise';
           reasonKey = 'reason_value';
-        } else if (equity > 45 && strategy !== 'conservative') {
-          adviceKey = 'advice_raise';
-          reasonKey = 'reason_bluff_semi';
-        } else if (isManiac && equity > 20) {
-          adviceKey = 'advice_raise_bluff';
-          reasonKey = 'reason_bluff_pure';
+        } else if (equity > profile.bluff_equity && strategy !== 'conservative') { // 只有非保守型才会诈唬
+          adviceKey = strategy === 'maniac' ? 'advice_raise_bluff' : 'advice_check_call';
+          reasonKey = strategy === 'maniac' ? 'reason_bluff_pure' : 'reason_bluff_semi';
         } else {
           adviceKey = 'advice_check_call';
           reasonKey = 'reason_odds';
         }
       } else {
+        // 面对下注逻辑
         if (equity > requiredEquity + 15) {
            adviceKey = 'advice_raise';
            reasonKey = 'reason_value';
         } else if (equity >= requiredEquity) {
            adviceKey = 'advice_call';
            reasonKey = 'reason_odds';
-        } else if (isManiac && equity > 15 && equity < requiredEquity) {
-           adviceKey = 'advice_raise_bluff';
+        } else if (strategy === 'maniac' && equity > 15 && equity < requiredEquity) {
+           adviceKey = 'advice_raise_bluff'; // 疯鱼特色
            reasonKey = 'reason_bluff_pure';
         } else {
            adviceKey = 'advice_fold';
@@ -321,8 +320,8 @@ function TexasHoldemAdvisor() {
       let finalReason = t[reasonKey] || `Pot Odds: ${potOdds.toFixed(1)}%`;
       if (posData) {
          finalReason += `\n[${posData.label}]: ${posData.action_plan}`;
-         if (posData.range_modifier === 'Tight' && adviceKey === 'advice_call' && equity < 45) adviceKey = 'advice_fold';
-         if (posData.range_modifier === 'Loose' && adviceKey === 'advice_fold' && equity > 25 && callAmount === 0) adviceKey = 'advice_check_call'; 
+         // 即使是疯鱼，在前位拿到垃圾牌也倾向于弃牌
+         if (posData.range_modifier === 'Tight' && adviceKey === 'advice_call' && equity < 40) adviceKey = 'advice_fold';
       }
 
       let finalAdvice = t[adviceKey] || "Advice N/A";
@@ -331,42 +330,36 @@ function TexasHoldemAdvisor() {
       let drawStats = null;
       if (PROBABILITIES && PROBABILITIES.outs_lookup && PROBABILITIES.outs_lookup[analysisKey]) {
          const d = PROBABILITIES.outs_lookup[analysisKey];
-         drawStats = {
-            label: d.label,
-            outs: d.outs,
-            equityFlop: d.equityFlop,
-            advice: d.advice
-         };
+         drawStats = { label: d.label, outs: d.outs, equityFlop: d.equityFlop, advice: d.advice };
          finalReason += `\n🎲 ${d.label}: ${d.outs} Outs (~${d.outs * 4}% Equity)`;
       }
 
       // 纹理建议
       if (textureStrategy && callAmount === 0 && !analysisKey?.startsWith('made_')) {
           finalReason += `\n[${textureStrategy.name}]: ${textureStrategy.desc}`;
-          if (textureType === 'wet') finalReason += " (Wet Board)";
       }
 
       // 手牌库覆盖
       if (analysisData) {
-         finalReason = analysisData.reason; // 覆盖通用理由
+         finalReason = analysisData.reason; 
          if (analysisKey.startsWith('made_') || analysisKey.includes('monster') || analysisKey === 'pre_monster_pair') {
              finalAdvice = analysisData.advice;
          }
          if (drawStats) finalReason += `\n🎲 ${drawStats.label} (${drawStats.outs} Outs)`;
       }
 
-      // 5. 动态下注尺度
+      // 5. 动态下注尺度 (核心修复：严格遵循 profile 的倍率)
       let betSizes = null;
       if (adviceKey.includes('raise') || adviceKey.includes('allin')) {
          const p = totalPot, s = heroStack;
          const cap = (val) => Math.min(val, s);
-         const cfg = STRATEGY_CONFIG?.postflop || { cbet_dry: 0.33, cbet_wet: 0.66, value_bet: 0.75 };
          
-         const cbetRatio = textureType === 'wet' ? cfg.cbet_wet : cfg.cbet_dry;
+         const bs = profile.bet_sizing; // 读取配置文件中的倍率
+         
          betSizes = { 
-           smart: cap(Math.round(p * cbetRatio)), 
-           value: cap(Math.round(p * cfg.value_bet)),
-           pot: cap(Math.round(p * 1.0)) 
+           smart: cap(Math.round(p * bs.small)), // 小注
+           value: cap(Math.round(p * bs.med)),   // 中注
+           pot: cap(Math.round(p * bs.large))    // 大注/超池
          };
       }
 
@@ -443,11 +436,9 @@ function TexasHoldemAdvisor() {
     }
   };
   const getStrategyLabel = () => {
-    switch(strategy) {
-      case 'maniac': return t.maniac;
-      case 'aggressive': return t.aggressive;
-      default: return t.conservative;
-    }
+    // 修复：从配置文件中获取多语言标签
+    const profile = STRATEGY_PROFILES[strategy] || STRATEGY_PROFILES['conservative'];
+    return lang === 'zh' ? profile.label_zh : profile.label_en;
   };
 
   const CardSelector = () => {
@@ -490,7 +481,7 @@ function TexasHoldemAdvisor() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-10">
       <div className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-30 shadow-md flex justify-between items-center">
-         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v6.7</span></div>
+         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v6.8</span></div>
          <div className="flex gap-2">
             <button onClick={() => setStrategy(s => s==='conservative'?'aggressive':s==='aggressive'?'maniac':'conservative')} className={`px-3 py-1.5 rounded-full border flex gap-1 items-center text-xs ${getStrategyStyle()}`}>{strategy==='maniac'&&<Flame className="w-3 h-3"/>}{getStrategyLabel()}</button>
             <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-800 rounded-full border border-slate-700"><Settings className="w-4 h-4"/></button>
@@ -537,7 +528,6 @@ function TexasHoldemAdvisor() {
                 className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded border border-slate-700 transition"
               >
                 <span className={`text-xs ${heroPosition ? 'text-blue-400 font-bold' : 'text-slate-500'}`}>
-                  {/* 修复：根据当前语言 [lang] 显示位置名称 */}
                   {heroPosition ? POSITIONS[lang][heroPosition].label : t.select_position}
                 </span>
                 <ChevronDown className="w-3 h-3 text-slate-500"/>
@@ -670,8 +660,6 @@ function TexasHoldemAdvisor() {
       </div>
 
       <CardSelector />
-      
-      {/* 修复：位置选择器弹窗 (支持双语) */}
       {showPositionSelector && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowPositionSelector(false)}>
           <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -681,8 +669,7 @@ function TexasHoldemAdvisor() {
              </div>
              <div className="space-y-3">
                {['EP', 'MP', 'LP', 'BLINDS'].map(key => {
-                 // 修复：根据 lang 动态获取数据
-                 const data = POSITIONS[lang][key];
+                 const data = POSITIONS[lang][key]; // 核心修复：根据 lang 获取数据
                  return (
                    <button
                      key={key}
@@ -720,8 +707,8 @@ function TexasHoldemAdvisor() {
                      <p className="text-[10px] text-slate-500 mt-1">{t.buy_in_info}</p>
                   </div>
                   <div className="p-3 bg-slate-900 rounded text-xs text-slate-500 border border-slate-700">
-                     <p>GTO Engine v6.7 Active</p>
-                     <p className="mt-1 text-emerald-500">• i18n Fixes Applied</p>
+                     <p>GTO Engine v6.8 Active</p>
+                     <p className="mt-1 text-emerald-500">• Strategy Differentiation</p>
                   </div>
                </div>
             </div>
