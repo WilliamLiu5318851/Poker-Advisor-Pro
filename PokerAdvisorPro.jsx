@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { RefreshCw, Trophy, Users, Brain, Info, ArrowRight, Flame, Zap, Settings, X, ShieldCheck, Flag, Lightbulb, Grid, MapPin, Calculator, HelpCircle, RotateCcw, CheckSquare, CheckCircle, MousePointerClick } from 'lucide-react';
+import { RefreshCw, Trophy, Users, Brain, Info, ArrowRight, Flame, Zap, Settings, X, ShieldCheck, Flag, Lightbulb, Grid, MapPin, Calculator, HelpCircle, RotateCcw, CheckSquare, CheckCircle, MousePointerClick, ChevronDown } from 'lucide-react';
 
 // 安全获取数据层
 const PokerData = window.PokerData || { 
@@ -18,8 +18,8 @@ const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTURE_STRATEGIES, POSITIONS, BOA
 const { SUITS, RANKS, RANK_VALUES } = CONSTANTS;
 
 /**
- * 德州扑克助手 Pro (v6.4 - Flexible Stack)
- * 修复：我的筹码 (Hero Stack) 现在是可编辑的输入框，支持随时买入
+ * 德州扑克助手 Pro (v6.5 - Position UX Enhanced)
+ * 修复：位置选择改为“单按钮+详细菜单”模式，对新手更友好
  */
 
 // --- 核心算法 ---
@@ -196,6 +196,7 @@ function TexasHoldemAdvisor() {
   const [lang, setLang] = useState('zh');
   const [strategy, setStrategy] = useState('conservative'); 
   const [showSettings, setShowSettings] = useState(false);
+  const [showPositionSelector, setShowPositionSelector] = useState(false); // 新增位置选择器状态
   const [heroPosition, setHeroPosition] = useState(null); 
   
   const [deckCount, setDeckCount] = useState(1);
@@ -487,7 +488,7 @@ function TexasHoldemAdvisor() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-10">
       <div className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-30 shadow-md flex justify-between items-center">
-         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v6.4</span></div>
+         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v6.5</span></div>
          <div className="flex gap-2">
             <button onClick={() => setStrategy(s => s==='conservative'?'aggressive':s==='aggressive'?'maniac':'conservative')} className={`px-3 py-1.5 rounded-full border flex gap-1 items-center text-xs ${getStrategyStyle()}`}>{strategy==='maniac'&&<Flame className="w-3 h-3"/>}{getStrategyLabel()}</button>
             <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-800 rounded-full border border-slate-700"><Settings className="w-4 h-4"/></button>
@@ -529,11 +530,16 @@ function TexasHoldemAdvisor() {
          <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-xs text-slate-400 font-bold flex gap-1"><MapPin className="w-3 h-3"/> {t.my_position}</span>
-              <div className="flex bg-slate-900 rounded p-1">
-                {['EP','MP','LP','BLINDS'].map(pos => (
-                  <button key={pos} onClick={() => setHeroPosition(pos)} className={`px-3 py-1 text-[10px] rounded ${heroPosition===pos ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}>{pos}</button>
-                ))}
-              </div>
+              {/* 修复：使用单按钮触发详细位置选择菜单 */}
+              <button 
+                onClick={() => setShowPositionSelector(true)} 
+                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded border border-slate-700 transition"
+              >
+                <span className={`text-xs ${heroPosition ? 'text-blue-400 font-bold' : 'text-slate-500'}`}>
+                  {heroPosition ? POSITIONS[heroPosition].label : t.select_position}
+                </span>
+                <ChevronDown className="w-3 h-3 text-slate-500"/>
+              </button>
             </div>
 
             <div className="flex gap-4">
@@ -545,7 +551,6 @@ function TexasHoldemAdvisor() {
                <div className="flex-1 space-y-2">
                   <div className="flex justify-between items-center text-xs text-slate-400">
                       <span>{t.heroStack}</span>
-                      {/* 修复：添加可编辑输入框和快速重买按钮 */}
                       <div className="flex items-center gap-1">
                           {heroStack === 0 && <button onClick={() => setHeroStack(buyInAmount)} className="text-[10px] bg-emerald-900 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800 flex items-center gap-1"><RotateCcw className="w-3 h-3"/> {t.rebuy}</button>}
                           <input 
@@ -663,6 +668,38 @@ function TexasHoldemAdvisor() {
       </div>
 
       <CardSelector />
+      
+      {/* 修复：位置选择器弹窗 (Position Selector Modal) */}
+      {showPositionSelector && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowPositionSelector(false)}>
+          <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+             <div className="flex justify-between mb-4">
+               <h3 className="font-bold text-white flex items-center gap-2"><MapPin className="w-4 h-4"/> {t.select_position}</h3>
+               <button onClick={() => setShowPositionSelector(false)}><X/></button>
+             </div>
+             <div className="space-y-3">
+               {['EP', 'MP', 'LP', 'BLINDS'].map(key => {
+                 const data = POSITIONS[key];
+                 return (
+                   <button
+                     key={key}
+                     onClick={() => { setHeroPosition(key); setShowPositionSelector(false); }}
+                     className={`w-full text-left p-3 rounded-lg border transition ${heroPosition === key ? 'bg-blue-900/30 border-blue-500' : 'bg-slate-700/30 border-slate-700 hover:bg-slate-700'}`}
+                   >
+                     <div className="flex justify-between items-center mb-1">
+                       <span className={`font-bold text-sm ${heroPosition === key ? 'text-blue-300' : 'text-slate-200'}`}>{data.label}</span>
+                       {heroPosition === key && <CheckCircle className="w-3 h-3 text-blue-400"/>}
+                     </div>
+                     <p className="text-[10px] text-slate-400 mb-1 leading-relaxed">{data.description}</p>
+                     <p className="text-[10px] text-slate-500 italic">💡 {data.action_plan}</p>
+                   </button>
+                 );
+               })}
+             </div>
+          </div>
+        </div>
+      )}
+
       {showSettings && (
          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
             <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
@@ -680,8 +717,8 @@ function TexasHoldemAdvisor() {
                      <p className="text-[10px] text-slate-500 mt-1">{t.buy_in_info}</p>
                   </div>
                   <div className="p-3 bg-slate-900 rounded text-xs text-slate-500 border border-slate-700">
-                     <p>GTO Engine v6.4 Active</p>
-                     <p className="mt-1 text-emerald-500">• Flexible Stack Editing</p>
+                     <p>GTO Engine v6.5 Active</p>
+                     <p className="mt-1 text-emerald-500">• Position UX Enhanced</p>
                   </div>
                </div>
             </div>

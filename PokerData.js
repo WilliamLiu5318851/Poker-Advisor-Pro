@@ -1,6 +1,6 @@
 /**
- * Poker Advisor Pro - Data Layer (v6.3 - Fully Localized)
- * 修复：补全所有缺失的中文翻译键值 (UI Labels, Strategy Reasons, Settings)
+ * Poker Advisor Pro - Data Layer (v6.6 - Hotfix)
+ * 修复：紧急找回误删的 TEXTURE_STRATEGIES 模块，确保所有功能正常
  */
 
 window.PokerData = {};
@@ -13,35 +13,35 @@ window.PokerData.CONSTANTS = {
   STREETS: ['Pre-flop', 'Flop', 'Turn', 'River']
 };
 
-// --- B. 位置与起手牌策略 ---
+// --- B. 位置与起手牌策略 (v6.5 新增) ---
 window.PokerData.POSITIONS = {
   EP: { 
     label: "前位 (EP)", 
     range_modifier: "Tight", 
-    description: "⚠️ 危险位置：后方有大量对手。",
-    action_plan: "只玩 AA/KK/AK 等怪兽牌。遇到反击通常弃牌。"
+    description: "⚠️ 危险位置：你是最早行动的人之一，后方还有大量对手未表态。",
+    action_plan: "只玩 AA/KK/AK/QQ 等核心强牌。如果遭遇反击，通常建议直接弃牌。"
   },
   MP: { 
     label: "中位 (MP)", 
     range_modifier: "Normal", 
-    description: "⚖️ 标准位置：可玩强高张(AQ)和中对子。",
-    action_plan: "标准打法，注意观察后位玩家动作。"
+    description: "⚖️ 标准位置：位置适中，可以看到前位玩家的动作。",
+    action_plan: "可以适当放宽范围，玩一些强高张(AQ/AJ)和中对子(99-JJ)。"
   },
   LP: { 
     label: "后位 (LP/BTN)", 
     range_modifier: "Loose", 
-    description: "🎯 黄金位置：拥有信息优势！",
-    action_plan: "积极偷盲，利用位置施压，多玩同花连张。"
+    description: "🎯 黄金位置：你是最后行动的人，拥有最大的信息优势！",
+    action_plan: "这是赚钱的位置！积极偷盲，利用位置优势施压，多玩同花连张等投机牌。"
   },
   BLINDS: { 
     label: "盲注 (SB/BB)", 
     range_modifier: "Defensive", 
-    description: "🛡️ 防守位置：被迫下注，不要造大底池。",
-    action_plan: "赔率合适跟注看牌，没中就撤。"
+    description: "🛡️ 防守位置：你被迫下注了盲注，翻牌后最先行动，非常被动。",
+    action_plan: "主要任务是防守。赔率合适时跟注看牌，没中就撤，不要在没位置时造大底池。"
   }
 };
 
-// --- C. 牌面纹理定义 ---
+// --- C. 牌面纹理定义 (宏观) ---
 window.PokerData.BOARD_TEXTURES = {
   dry: { 
     id: "dry",
@@ -150,11 +150,9 @@ window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
     pre_broadway: { label: "广播道 (Broadways)", advice: "谨慎进攻", reason: "容易成顶对，但踢脚往往不如对手。" },
     pre_trash: { label: "杂牌 (Trash)", advice: "弃牌 (Fold)", reason: "长期玩这种牌是亏损的根源。" },
 
-    // 修复：添加通用的同花顺定义，防止分析器返回 generic key 时报错
     made_straight_flush: { label: "同花顺 (Straight Flush)", advice: "慢打/诱敌", reason: "绝世好牌！" },
     made_straight_flush_nuts: { label: "坚果同花顺 (Nuts)", advice: "慢打/诱敌", reason: "无敌！想办法让对手送钱。" },
     made_straight_flush_lower: { label: "低端同花顺 (Low SF)", advice: "极度危险", reason: "🛑 警告：存在更大的同花顺！" },
-    
     made_quads: { label: "四条 (Quads)", advice: "慢打", reason: "炸弹！极小概率输牌。" },
     made_full_house: { label: "满堂红 (Full House)", advice: "价值下注", reason: "除非撞上更大的葫芦，否则稳赢。" },
     made_flush_nuts: { label: "坚果同花 (Nut Flush)", advice: "价值下注", reason: "当前最大的同花，无惧对手。" },
@@ -183,7 +181,7 @@ window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
   }
 };
 
-// --- H. 具体纹理特征 ---
+// --- H. 具体纹理特征 (恢复被误删的模块) ---
 window.PokerData.TEXTURE_STRATEGIES = {
   TEX_PAIRED: { name: "公对面 (Paired)", desc: "有人可能中三条或葫芦。" },
   TEX_MONOTONE: { name: "单色面 (Monotone)", desc: "极度危险，易有同花。" },
@@ -192,7 +190,7 @@ window.PokerData.TEXTURE_STRATEGIES = {
   TEX_RAINBOW_DRY: { name: "干燥面 (Dry)", desc: "安全，适合诈唬。" }
 };
 
-// --- I. UI 文本 (完全汉化版) ---
+// --- I. UI 文本 ---
 window.PokerData.TEXTS = {
   zh: {
     appTitle: '德州扑克智囊 Pro',
@@ -226,8 +224,8 @@ window.PokerData.TEXTS = {
     selecting_river: '选择河牌',
     add_player: '添加对手',
     
-    // --- 新增缺失的翻译 ---
     my_position: '我的位置',
+    select_position: '选择位置', 
     bet_placeholder: '输入下注额',
     players: '对手列表',
     betSizing: '智能下注建议',
@@ -298,8 +296,8 @@ window.PokerData.TEXTS = {
     selecting_river: 'Select River',
     add_player: 'Add Opponent',
     
-    // --- Added Missing English Keys ---
     my_position: 'My Position',
+    select_position: 'Select Pos', 
     bet_placeholder: 'Bet Amount',
     players: 'Opponents',
     betSizing: 'Bet Sizing',
