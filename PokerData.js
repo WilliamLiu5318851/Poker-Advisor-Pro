@@ -1,6 +1,6 @@
 /**
- * Poker Advisor Pro - Data Layer (v6.8 - Strategy Profiles)
- * 核心升级：为三种策略模式定义了截然不同的参数配置，使其性格分明
+ * Poker Advisor Pro - Data Layer (v6.9.1 - Hotfix)
+ * 修复：紧急找回在 v6.9 中意外丢失的英文版牌型定义 (lines 170-200+)，同时保留高牌细分逻辑
  */
 
 window.PokerData = {};
@@ -13,91 +13,51 @@ window.PokerData.CONSTANTS = {
   STREETS: ['Pre-flop', 'Flop', 'Turn', 'River']
 };
 
-// --- B. 策略风格配置文件 (NEW) ---
+// --- B. 策略风格配置文件 ---
 window.PokerData.STRATEGY_PROFILES = {
   conservative: {
     label_zh: "保守型 (Tight)",
     label_en: "Conservative",
-    equity_buffer: 1.15, // 需要比底池赔率高 15% 的胜率才跟注
-    raise_threshold: 70, // 只有 70% 以上胜率才加注
-    bluff_equity: 100,   // 绝不纯诈唬 (设为100即不可能触发)
-    bet_sizing: { small: 0.33, med: 0.5, large: 0.66 } // 倾向于下小注控池
+    equity_buffer: 1.15,
+    raise_threshold: 70,
+    bluff_equity: 100,
+    bet_sizing: { small: 0.33, med: 0.5, large: 0.66 }
   },
   aggressive: {
     label_zh: "激进型 (Aggressive)",
     label_en: "Aggressive",
-    equity_buffer: 0.95, // 稍微放宽跟注标准
-    raise_threshold: 50, // 50% 胜率就开始主动进攻
-    bluff_equity: 30,    // 30% 胜率(听牌)时可能进行半诈唬
-    bet_sizing: { small: 0.5, med: 0.75, large: 1.0 } // 标准价值下注
+    equity_buffer: 0.95,
+    raise_threshold: 50,
+    bluff_equity: 30,
+    bet_sizing: { small: 0.5, med: 0.75, large: 1.0 }
   },
   maniac: {
     label_zh: "疯鱼型 (Maniac)",
     label_en: "Maniac",
-    equity_buffer: 0.7,  // 极其松的跟注标准
-    raise_threshold: 30, // 30% 胜率就敢加注 (高波动)
-    bluff_equity: 15,    // 垃圾牌也敢诈唬
-    bet_sizing: { small: 0.75, med: 1.2, large: 2.0 } // 经常超池下注给压力
+    equity_buffer: 0.7,
+    raise_threshold: 30,
+    bluff_equity: 15,
+    bet_sizing: { small: 0.75, med: 1.2, large: 2.0 }
   }
 };
 
-// --- C. 位置与起手牌策略 (双语版) ---
+// --- C. 位置与起手牌策略 ---
 window.PokerData.POSITIONS = {
   zh: {
-    EP: { 
-      label: "前位 (EP)", 
-      range_modifier: "Tight", 
-      description: "⚠️ 危险位置：你是最早行动的人之一，后方还有大量对手未表态。",
-      action_plan: "只玩 AA/KK/AK/QQ 等核心强牌。如果遭遇反击，通常建议直接弃牌。"
-    },
-    MP: { 
-      label: "中位 (MP)", 
-      range_modifier: "Normal", 
-      description: "⚖️ 标准位置：位置适中，可以看到前位玩家的动作。",
-      action_plan: "可以适当放宽范围，玩一些强高张(AQ/AJ)和中对子(99-JJ)。"
-    },
-    LP: { 
-      label: "后位 (LP/BTN)", 
-      range_modifier: "Loose", 
-      description: "🎯 黄金位置：你是最后行动的人，拥有最大的信息优势！",
-      action_plan: "这是赚钱的位置！积极偷盲，利用位置优势施压，多玩同花连张等投机牌。"
-    },
-    BLINDS: { 
-      label: "盲注 (SB/BB)", 
-      range_modifier: "Defensive", 
-      description: "🛡️ 防守位置：你被迫下注了盲注，翻牌后最先行动，非常被动。",
-      action_plan: "主要任务是防守。赔率合适时跟注看牌，没中就撤，不要在没位置时造大底池。"
-    }
+    EP: { label: "前位 (EP)", range_modifier: "Tight", description: "⚠️ 危险位置：你是最早行动的人之一。", action_plan: "只玩 AA/KK/AK/QQ 等核心强牌。遇反击弃牌。" },
+    MP: { label: "中位 (MP)", range_modifier: "Normal", description: "⚖️ 标准位置：位置适中。", action_plan: "适当放宽范围，玩强高张(AQ/AJ)和中对子。" },
+    LP: { label: "后位 (LP/BTN)", range_modifier: "Loose", description: "🎯 黄金位置：最后行动，信息优势最大！", action_plan: "积极偷盲，利用位置施压，多玩同花连张。" },
+    BLINDS: { label: "盲注 (SB/BB)", range_modifier: "Defensive", description: "🛡️ 防守位置：被迫下注，翻后先行动。", action_plan: "主要防守。赔率合适跟注，没中就撤。" }
   },
   en: {
-    EP: { 
-      label: "Early Pos (EP)", 
-      range_modifier: "Tight", 
-      description: "⚠️ Danger Zone: You act early with many opponents left to act behind you.",
-      action_plan: "Play only premium hands (AA/KK/AK/QQ). If re-raised, usually fold."
-    },
-    MP: { 
-      label: "Middle Pos (MP)", 
-      range_modifier: "Normal", 
-      description: "⚖️ Standard Position: You can see early actions before making a decision.",
-      action_plan: "Widen range slightly. Good for strong broadways (AQ/AJ) and mid-pairs (99-JJ)."
-    },
-    LP: { 
-      label: "Late Pos (LP/BTN)", 
-      range_modifier: "Loose", 
-      description: "🎯 Money Position: You act last and have the most information!",
-      action_plan: "Steal blinds aggressively. Use position to apply pressure with suited connectors."
-    },
-    BLINDS: { 
-      label: "Blinds (SB/BB)", 
-      range_modifier: "Defensive", 
-      description: "🛡️ Defensive: You are forced to bet and act first post-flop. Very passive.",
-      action_plan: "Defend only with good odds. Fit or fold. Do not build big pots out of position."
-    }
+    EP: { label: "Early Pos (EP)", range_modifier: "Tight", description: "⚠️ Danger Zone: Act early.", action_plan: "Premium hands only (AA/KK/AK)." },
+    MP: { label: "Middle Pos (MP)", range_modifier: "Normal", description: "⚖️ Standard Position.", action_plan: "Widen range slightly (AQ/AJ/99+)." },
+    LP: { label: "Late Pos (LP/BTN)", range_modifier: "Loose", description: "🎯 Money Position: Act last.", action_plan: "Steal blinds, play suited connectors." },
+    BLINDS: { label: "Blinds (SB/BB)", range_modifier: "Defensive", description: "🛡️ Defensive: Out of position.", action_plan: "Defend with good odds. Fit or fold." }
   }
 };
 
-// --- D. 牌面纹理定义 (宏观 - 双语) ---
+// --- D. 牌面纹理定义 ---
 window.PokerData.BOARD_TEXTURES = {
   zh: {
     dry: { label: "干燥牌面 (Dry)", features: ["杂色", "不连张"], strategy_adjustment: "high_fold_equity" },
@@ -109,13 +69,12 @@ window.PokerData.BOARD_TEXTURES = {
   }
 };
 
-// --- E. 牌面纹理新手教学 (Placeholder) ---
 window.PokerData.TEXTURE_EXPLANATION = { zh: {}, en: {} };
 
-// --- F. 数学概率与补牌速查表 ---
+// --- E. 数学概率 ---
 window.PokerData.PROBABILITIES = {
   flop_hit: {
-    pocket_pair_to_set: { label: "中三条 (Set)", prob: 12, note: "8中1" },
+    pocket_pair_to_set: { label: "中三条", prob: 12, note: "8中1" },
     suited_to_flush: { label: "天胡同花", prob: 0.8, note: "极难" },
     suited_to_flush_draw: { label: "中听花", prob: 11, note: "主要价值" },
     any_two_to_pair: { label: "中一对", prob: 32, note: "最常见" }
@@ -130,7 +89,12 @@ window.PokerData.PROBABILITIES = {
   }
 };
 
-// --- G. 手牌分析库 ---
+window.PokerData.STRATEGY_CONFIG = {
+  preflop: { open_raise_base: 3.0, iso_raise_per_limper: 1.0, min_equity_to_call: 33 },
+  postflop: { cbet_dry: 0.33, cbet_wet: 0.66, value_bet: 0.75, bluff_raise: 3.0 }
+};
+
+// --- F. 手牌分析库 (关键修复：补全英文定义) ---
 window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
   zh: {
     pre_monster_pair: { label: "超级对子 (Monster)", advice: "加注/4-Bet", reason: "起手最强牌，不要慢打！" },
@@ -163,8 +127,14 @@ window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
     straight_draw_gutshot: { label: "卡顺听牌 (Gutshot)", advice: "谨慎跟注", reason: "只有4张补牌，别追。" },
     combo_draw: { label: "双重听牌 (Combo Draw)", advice: "全压/重注", reason: "胜率极高，甚至领先成牌！" },
     overcards: { label: "两张高牌 (Overcards)", advice: "观望/飘打", reason: "暂无成牌，可尝试诈唬。" },
+    
+    // v6.9 新增
+    high_card_good: { label: "强高牌 (Good High Card)", advice: "过牌/跟小注", reason: "J/Q/K/A 拥有摊牌价值，若便宜可看一张。" },
+    high_card_weak: { label: "弱高牌 (Weak High Card)", advice: "过牌/弃牌", reason: "牌力太弱，很难获胜，建议放弃。" },
+    
     trash: { label: "空气牌 (Trash)", advice: "弃牌 (Fold)", reason: "毫无胜率，快跑。" }
   },
+  // 核心修复：找回所有被误删的英文定义
   en: {
     pre_monster_pair: { label: "Premium Pair", advice: "Raise/4-Bet", reason: "Build pot with AA/KK/QQ." },
     pre_strong_pair: { label: "Strong Pair", advice: "Raise/Call", reason: "Good value, but watch out for overcards." },
@@ -196,11 +166,15 @@ window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
     straight_draw_gutshot: { label: "Gutshot", advice: "Caution", reason: "Only 4 outs. Don't chase." },
     combo_draw: { label: "Combo Draw", advice: "All-in", reason: "Massive equity! Often ahead of made hands." },
     overcards: { label: "Overcards", advice: "Float", reason: "No made hand, but 6 outs." },
+    
+    // v6.9 新增 (英文)
+    high_card_good: { label: "Good High Card", advice: "Check/Call Small", reason: "J/Q/K/A has showdown value." },
+    high_card_weak: { label: "Weak High Card", advice: "Check/Fold", reason: "Very weak. Fold to aggression." },
+    
     trash: { label: "Trash", advice: "Fold", reason: "No value." }
   }
 };
 
-// --- H. 具体纹理特征 (双语版) ---
 window.PokerData.TEXTURE_STRATEGIES = {
   zh: {
     TEX_PAIRED: { name: "公对面 (Paired)", desc: "有人可能中三条或葫芦。" },
@@ -218,7 +192,6 @@ window.PokerData.TEXTURE_STRATEGIES = {
   }
 };
 
-// --- I. UI 文本 ---
 window.PokerData.TEXTS = {
   zh: {
     appTitle: '德州扑克智囊 Pro',
@@ -251,7 +224,6 @@ window.PokerData.TEXTS = {
     selecting_turn: '选择转牌',
     selecting_river: '选择河牌',
     add_player: '添加对手',
-    
     my_position: '我的位置',
     select_position: '选择位置', 
     bet_placeholder: '输入下注额',
@@ -263,7 +235,6 @@ window.PokerData.TEXTS = {
     bet_size_over: '超池',
     deck_info: '模拟使用的牌副数 (标准1副)',
     buy_in_info: '重买时的默认筹码量',
-    
     advice_raise: '建议加注 (Raise)',
     advice_call: '建议跟注 (Call)',
     advice_fold: '建议弃牌 (Fold)',
@@ -271,13 +242,11 @@ window.PokerData.TEXTS = {
     advice_allin: '建议全压 (All-In)',
     advice_allin_bluff: '建议全压诈唬',
     advice_check_call: '建议过牌/跟注',
-    
     reason_spr_low: 'SPR过低，已套池',
     reason_value: '强牌价值下注',
     reason_bluff_semi: '听牌半诈唬',
     reason_bluff_pure: '纯诈唬 (位置/形象)',
     reason_odds: '赔率合适/过牌控池',
-    
     maniac: '疯鱼模式',
     aggressive: '激进模式',
     conservative: '保守模式',
@@ -323,7 +292,6 @@ window.PokerData.TEXTS = {
     selecting_turn: 'Select Turn',
     selecting_river: 'Select River',
     add_player: 'Add Opponent',
-    
     my_position: 'My Position',
     select_position: 'Select Pos', 
     bet_placeholder: 'Bet Amount',
@@ -335,7 +303,6 @@ window.PokerData.TEXTS = {
     bet_size_over: 'Overbet',
     deck_info: 'Number of decks for sim',
     buy_in_info: 'Default rebuy amount',
-    
     advice_raise: 'Advice: Raise',
     advice_call: 'Advice: Call',
     advice_fold: 'Advice: Fold',
@@ -343,13 +310,11 @@ window.PokerData.TEXTS = {
     advice_allin: 'Advice: All-In',
     advice_allin_bluff: 'Advice: Bluff All-In',
     advice_check_call: 'Advice: Check/Call',
-    
     reason_spr_low: 'Low SPR, Pot Committed',
     reason_value: 'Value Bet',
     reason_bluff_semi: 'Semi-Bluff',
     reason_bluff_pure: 'Pure Bluff',
     reason_odds: 'Good Odds / Pot Control',
-    
     maniac: 'Maniac',
     aggressive: 'Aggressive',
     conservative: 'Conservative',

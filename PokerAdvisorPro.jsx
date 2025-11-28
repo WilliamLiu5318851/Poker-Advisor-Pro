@@ -8,7 +8,7 @@ const PokerData = window.PokerData || {
   HAND_ANALYSIS_DEFINITIONS: { zh: {}, en: {} },
   TEXTURE_STRATEGIES: { zh: {}, en: {} },
   POSITIONS: { zh: {}, en: {} },
-  STRATEGY_PROFILES: {}, // New
+  STRATEGY_PROFILES: {},
   BOARD_TEXTURES: {},
   PROBABILITIES: { outs_lookup: {} },
   STRATEGY_CONFIG: { preflop: {}, postflop: {} },
@@ -18,8 +18,8 @@ const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTURE_STRATEGIES, POSITIONS, STR
 const { SUITS, RANKS, RANK_VALUES } = CONSTANTS;
 
 /**
- * 德州扑克助手 Pro (v6.8 - Differentiated Strategies)
- * 修复：三种策略模式（保守/激进/疯鱼）现在拥有截然不同的胜率阈值和下注尺度
+ * 德州扑克助手 Pro (v6.9 - Hand Refinement)
+ * 修复：细分高牌逻辑，区分 JQK 强高牌与弱高牌
  */
 
 // --- 核心算法 ---
@@ -176,7 +176,15 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
       return "bottom_pair";
   }
 
-  return "overcards";
+  // --- 高牌判定逻辑更新 ---
+  if (h1 > maxBoard && h2 > maxBoard) return "overcards"; // 依然保留两张高牌
+  
+  // 单张高牌 (High Card)
+  // 如果手中最大的牌是 J (11) 或以上，视为"强高牌"
+  if (h1 >= 11) return "high_card_good";
+  
+  // 否则是"弱高牌/空气牌"
+  return "high_card_weak"; 
 };
 
 // UI 组件
@@ -276,24 +284,22 @@ function TexasHoldemAdvisor() {
       const textureStrategy = textureKey ? TEXTURE_STRATEGIES[lang][textureKey] : null;
       const posData = heroPosition ? POSITIONS[lang][heroPosition] : null;
       
-      // 4. 生成建议 (核心修复：引入差异化配置文件)
+      // 4. 生成建议
       const profile = STRATEGY_PROFILES[strategy] || STRATEGY_PROFILES['conservative'];
       
       let adviceKey = 'advice_fold';
       let reasonKey = 'reason_odds';
 
-      // 根据策略计算所需的动态胜率 (保守型需要更高胜率，疯鱼型需要更低)
       let requiredEquity = potOdds * profile.equity_buffer; 
 
       if (parseFloat(spr) < 1.5 && equity > (strategy === 'maniac' ? 15 : 30)) {
         adviceKey = strategy === 'maniac' ? 'advice_allin_bluff' : 'advice_allin';
         reasonKey = 'reason_spr_low';
       } else if (callAmount === 0) {
-        // 主动下注逻辑
-        if (equity > profile.raise_threshold) { // 使用 profile.raise_threshold
+        if (equity > profile.raise_threshold) { 
           adviceKey = 'advice_raise';
           reasonKey = 'reason_value';
-        } else if (equity > profile.bluff_equity && strategy !== 'conservative') { // 只有非保守型才会诈唬
+        } else if (equity > profile.bluff_equity && strategy !== 'conservative') { 
           adviceKey = strategy === 'maniac' ? 'advice_raise_bluff' : 'advice_check_call';
           reasonKey = strategy === 'maniac' ? 'reason_bluff_pure' : 'reason_bluff_semi';
         } else {
@@ -301,7 +307,6 @@ function TexasHoldemAdvisor() {
           reasonKey = 'reason_odds';
         }
       } else {
-        // 面对下注逻辑
         if (equity > requiredEquity + 15) {
            adviceKey = 'advice_raise';
            reasonKey = 'reason_value';
@@ -309,7 +314,7 @@ function TexasHoldemAdvisor() {
            adviceKey = 'advice_call';
            reasonKey = 'reason_odds';
         } else if (strategy === 'maniac' && equity > 15 && equity < requiredEquity) {
-           adviceKey = 'advice_raise_bluff'; // 疯鱼特色
+           adviceKey = 'advice_raise_bluff'; 
            reasonKey = 'reason_bluff_pure';
         } else {
            adviceKey = 'advice_fold';
@@ -320,7 +325,6 @@ function TexasHoldemAdvisor() {
       let finalReason = t[reasonKey] || `Pot Odds: ${potOdds.toFixed(1)}%`;
       if (posData) {
          finalReason += `\n[${posData.label}]: ${posData.action_plan}`;
-         // 即使是疯鱼，在前位拿到垃圾牌也倾向于弃牌
          if (posData.range_modifier === 'Tight' && adviceKey === 'advice_call' && equity < 40) adviceKey = 'advice_fold';
       }
 
@@ -339,27 +343,27 @@ function TexasHoldemAdvisor() {
           finalReason += `\n[${textureStrategy.name}]: ${textureStrategy.desc}`;
       }
 
-      // 手牌库覆盖
+      // 手牌库覆盖 (包括 high_card_good / high_card_weak)
       if (analysisData) {
          finalReason = analysisData.reason; 
-         if (analysisKey.startsWith('made_') || analysisKey.includes('monster') || analysisKey === 'pre_monster_pair') {
+         // 强制覆盖建议的类型
+         if (analysisKey.startsWith('made_') || analysisKey.includes('monster') || analysisKey === 'pre_monster_pair' || analysisKey === 'high_card_good' || analysisKey === 'high_card_weak' || analysisKey === 'trash') {
              finalAdvice = analysisData.advice;
          }
          if (drawStats) finalReason += `\n🎲 ${drawStats.label} (${drawStats.outs} Outs)`;
       }
 
-      // 5. 动态下注尺度 (核心修复：严格遵循 profile 的倍率)
+      // 5. 动态下注尺度
       let betSizes = null;
       if (adviceKey.includes('raise') || adviceKey.includes('allin')) {
          const p = totalPot, s = heroStack;
          const cap = (val) => Math.min(val, s);
-         
-         const bs = profile.bet_sizing; // 读取配置文件中的倍率
+         const bs = profile.bet_sizing;
          
          betSizes = { 
-           smart: cap(Math.round(p * bs.small)), // 小注
-           value: cap(Math.round(p * bs.med)),   // 中注
-           pot: cap(Math.round(p * bs.large))    // 大注/超池
+           smart: cap(Math.round(p * bs.small)), 
+           value: cap(Math.round(p * bs.med)),   
+           pot: cap(Math.round(p * bs.large))    
          };
       }
 
@@ -436,7 +440,6 @@ function TexasHoldemAdvisor() {
     }
   };
   const getStrategyLabel = () => {
-    // 修复：从配置文件中获取多语言标签
     const profile = STRATEGY_PROFILES[strategy] || STRATEGY_PROFILES['conservative'];
     return lang === 'zh' ? profile.label_zh : profile.label_en;
   };
@@ -481,7 +484,7 @@ function TexasHoldemAdvisor() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-10">
       <div className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-30 shadow-md flex justify-between items-center">
-         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v6.8</span></div>
+         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v6.9</span></div>
          <div className="flex gap-2">
             <button onClick={() => setStrategy(s => s==='conservative'?'aggressive':s==='aggressive'?'maniac':'conservative')} className={`px-3 py-1.5 rounded-full border flex gap-1 items-center text-xs ${getStrategyStyle()}`}>{strategy==='maniac'&&<Flame className="w-3 h-3"/>}{getStrategyLabel()}</button>
             <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-800 rounded-full border border-slate-700"><Settings className="w-4 h-4"/></button>
@@ -660,6 +663,7 @@ function TexasHoldemAdvisor() {
       </div>
 
       <CardSelector />
+      
       {showPositionSelector && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowPositionSelector(false)}>
           <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -669,7 +673,7 @@ function TexasHoldemAdvisor() {
              </div>
              <div className="space-y-3">
                {['EP', 'MP', 'LP', 'BLINDS'].map(key => {
-                 const data = POSITIONS[lang][key]; // 核心修复：根据 lang 获取数据
+                 const data = POSITIONS[lang][key]; 
                  return (
                    <button
                      key={key}
@@ -707,8 +711,8 @@ function TexasHoldemAdvisor() {
                      <p className="text-[10px] text-slate-500 mt-1">{t.buy_in_info}</p>
                   </div>
                   <div className="p-3 bg-slate-900 rounded text-xs text-slate-500 border border-slate-700">
-                     <p>GTO Engine v6.8 Active</p>
-                     <p className="mt-1 text-emerald-500">• Strategy Differentiation</p>
+                     <p>GTO Engine v6.9 Active</p>
+                     <p className="mt-1 text-emerald-500">• Enhanced Hand Analysis</p>
                   </div>
                </div>
             </div>
