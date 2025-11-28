@@ -18,8 +18,8 @@ const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTURE_STRATEGIES, POSITIONS, STR
 const { SUITS, RANKS, RANK_VALUES } = CONSTANTS;
 
 /**
- * 德州扑克助手 Pro (v6.9 - Hand Refinement)
- * 修复：细分高牌逻辑，区分 JQK 强高牌与弱高牌
+ * 德州扑克助手 Pro (v7.0 - Strict Logic)
+ * 修复：严格区分翻牌前后的高牌与垃圾牌，强制执行弃牌策略
  */
 
 // --- 核心算法 ---
@@ -128,6 +128,9 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
           if (h1 >= 10 && h2 >= 10) return "pre_broadway";
       }
       if (h1 >= 10 && h2 >= 10) return "pre_broadway";
+      
+      // Fix: Pre-flop 高牌细分
+      if (h1 >= 11) return "pre_high_card"; // J, Q, K, A 单张
       return "pre_trash";
   }
 
@@ -176,14 +179,10 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
       return "bottom_pair";
   }
 
-  // --- 高牌判定逻辑更新 ---
-  if (h1 > maxBoard && h2 > maxBoard) return "overcards"; // 依然保留两张高牌
+  // Post-flop Logic
+  if (h1 > maxBoard && h2 > maxBoard) return "overcards"; 
   
-  // 单张高牌 (High Card)
-  // 如果手中最大的牌是 J (11) 或以上，视为"强高牌"
   if (h1 >= 11) return "high_card_good";
-  
-  // 否则是"弱高牌/空气牌"
   return "high_card_weak"; 
 };
 
@@ -343,11 +342,11 @@ function TexasHoldemAdvisor() {
           finalReason += `\n[${textureStrategy.name}]: ${textureStrategy.desc}`;
       }
 
-      // 手牌库覆盖 (包括 high_card_good / high_card_weak)
+      // 手牌库覆盖 (包括新逻辑)
       if (analysisData) {
          finalReason = analysisData.reason; 
-         // 强制覆盖建议的类型
-         if (analysisKey.startsWith('made_') || analysisKey.includes('monster') || analysisKey === 'pre_monster_pair' || analysisKey === 'high_card_good' || analysisKey === 'high_card_weak' || analysisKey === 'trash') {
+         // Fix: 强制覆盖所有定义过的牌型（包括 pre_trash, pre_high_card, high_card_weak）
+         if (analysisKey.startsWith('made_') || analysisKey.includes('monster') || analysisKey.includes('pair') || analysisKey.includes('high_card') || analysisKey.includes('trash')) {
              finalAdvice = analysisData.advice;
          }
          if (drawStats) finalReason += `\n🎲 ${drawStats.label} (${drawStats.outs} Outs)`;
@@ -484,7 +483,7 @@ function TexasHoldemAdvisor() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-10">
       <div className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-30 shadow-md flex justify-between items-center">
-         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v6.9</span></div>
+         <div className="flex items-center gap-2 text-emerald-500 font-bold"><Trophy className="w-5 h-5"/> {t.appTitle} <span className="text-[10px] bg-slate-800 px-1 rounded text-slate-500">v7.0</span></div>
          <div className="flex gap-2">
             <button onClick={() => setStrategy(s => s==='conservative'?'aggressive':s==='aggressive'?'maniac':'conservative')} className={`px-3 py-1.5 rounded-full border flex gap-1 items-center text-xs ${getStrategyStyle()}`}>{strategy==='maniac'&&<Flame className="w-3 h-3"/>}{getStrategyLabel()}</button>
             <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-800 rounded-full border border-slate-700"><Settings className="w-4 h-4"/></button>
@@ -711,8 +710,8 @@ function TexasHoldemAdvisor() {
                      <p className="text-[10px] text-slate-500 mt-1">{t.buy_in_info}</p>
                   </div>
                   <div className="p-3 bg-slate-900 rounded text-xs text-slate-500 border border-slate-700">
-                     <p>GTO Engine v6.9 Active</p>
-                     <p className="mt-1 text-emerald-500">• Enhanced Hand Analysis</p>
+                     <p>GTO Engine v7.0 Active</p>
+                     <p className="mt-1 text-emerald-500">• Strict Hand Logic</p>
                   </div>
                </div>
             </div>
