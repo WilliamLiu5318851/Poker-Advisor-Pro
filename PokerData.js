@@ -1,6 +1,6 @@
 /**
- * Poker Advisor Pro - Data Layer (v6.6 - Hotfix)
- * 修复：紧急找回误删的 TEXTURE_STRATEGIES 模块，确保所有功能正常
+ * Poker Advisor Pro - Data Layer (v6.7 - i18n Fix)
+ * 修复：位置策略 (POSITIONS) 和纹理分析 (TEXTURE_STRATEGIES) 现在支持双语切换
  */
 
 window.PokerData = {};
@@ -13,67 +13,76 @@ window.PokerData.CONSTANTS = {
   STREETS: ['Pre-flop', 'Flop', 'Turn', 'River']
 };
 
-// --- B. 位置与起手牌策略 (v6.5 新增) ---
+// --- B. 位置与起手牌策略 (双语版) ---
 window.PokerData.POSITIONS = {
-  EP: { 
-    label: "前位 (EP)", 
-    range_modifier: "Tight", 
-    description: "⚠️ 危险位置：你是最早行动的人之一，后方还有大量对手未表态。",
-    action_plan: "只玩 AA/KK/AK/QQ 等核心强牌。如果遭遇反击，通常建议直接弃牌。"
+  zh: {
+    EP: { 
+      label: "前位 (EP)", 
+      range_modifier: "Tight", 
+      description: "⚠️ 危险位置：你是最早行动的人之一，后方还有大量对手未表态。",
+      action_plan: "只玩 AA/KK/AK/QQ 等核心强牌。如果遭遇反击，通常建议直接弃牌。"
+    },
+    MP: { 
+      label: "中位 (MP)", 
+      range_modifier: "Normal", 
+      description: "⚖️ 标准位置：位置适中，可以看到前位玩家的动作。",
+      action_plan: "可以适当放宽范围，玩一些强高张(AQ/AJ)和中对子(99-JJ)。"
+    },
+    LP: { 
+      label: "后位 (LP/BTN)", 
+      range_modifier: "Loose", 
+      description: "🎯 黄金位置：你是最后行动的人，拥有最大的信息优势！",
+      action_plan: "这是赚钱的位置！积极偷盲，利用位置优势施压，多玩同花连张等投机牌。"
+    },
+    BLINDS: { 
+      label: "盲注 (SB/BB)", 
+      range_modifier: "Defensive", 
+      description: "🛡️ 防守位置：你被迫下注了盲注，翻牌后最先行动，非常被动。",
+      action_plan: "主要任务是防守。赔率合适时跟注看牌，没中就撤，不要在没位置时造大底池。"
+    }
   },
-  MP: { 
-    label: "中位 (MP)", 
-    range_modifier: "Normal", 
-    description: "⚖️ 标准位置：位置适中，可以看到前位玩家的动作。",
-    action_plan: "可以适当放宽范围，玩一些强高张(AQ/AJ)和中对子(99-JJ)。"
-  },
-  LP: { 
-    label: "后位 (LP/BTN)", 
-    range_modifier: "Loose", 
-    description: "🎯 黄金位置：你是最后行动的人，拥有最大的信息优势！",
-    action_plan: "这是赚钱的位置！积极偷盲，利用位置优势施压，多玩同花连张等投机牌。"
-  },
-  BLINDS: { 
-    label: "盲注 (SB/BB)", 
-    range_modifier: "Defensive", 
-    description: "🛡️ 防守位置：你被迫下注了盲注，翻牌后最先行动，非常被动。",
-    action_plan: "主要任务是防守。赔率合适时跟注看牌，没中就撤，不要在没位置时造大底池。"
+  en: {
+    EP: { 
+      label: "Early Pos (EP)", 
+      range_modifier: "Tight", 
+      description: "⚠️ Danger Zone: You act early with many opponents left to act behind you.",
+      action_plan: "Play only premium hands (AA/KK/AK/QQ). If re-raised, usually fold."
+    },
+    MP: { 
+      label: "Middle Pos (MP)", 
+      range_modifier: "Normal", 
+      description: "⚖️ Standard Position: You can see early actions before making a decision.",
+      action_plan: "Widen range slightly. Good for strong broadways (AQ/AJ) and mid-pairs (99-JJ)."
+    },
+    LP: { 
+      label: "Late Pos (LP/BTN)", 
+      range_modifier: "Loose", 
+      description: "🎯 Money Position: You act last and have the most information!",
+      action_plan: "Steal blinds aggressively. Use position to apply pressure with suited connectors."
+    },
+    BLINDS: { 
+      label: "Blinds (SB/BB)", 
+      range_modifier: "Defensive", 
+      description: "🛡️ Defensive: You are forced to bet and act first post-flop. Very passive.",
+      action_plan: "Defend only with good odds. Fit or fold. Do not build big pots out of position."
+    }
   }
 };
 
-// --- C. 牌面纹理定义 (宏观) ---
+// --- C. 牌面纹理定义 (宏观 - 双语) ---
 window.PokerData.BOARD_TEXTURES = {
-  dry: { 
-    id: "dry",
-    label: "干燥牌面 (Dry)", 
-    features: ["Rainbow (杂色)", "Disconnected (不连张)"], 
-    strategy_adjustment: "high_fold_equity", 
-    cbet_freq: "High", 
-    example: "Ks 7d 2h" 
+  zh: {
+    dry: { label: "干燥牌面 (Dry)", features: ["杂色", "不连张"], strategy_adjustment: "high_fold_equity" },
+    wet: { label: "潮湿牌面 (Wet)", features: ["同花/连张", "公对"], strategy_adjustment: "pot_control" }
   },
-  wet: { 
-    id: "wet",
-    label: "潮湿牌面 (Wet)", 
-    features: ["Suited (同花面)", "Connected (连张面)", "Paired (公对)"], 
-    strategy_adjustment: "pot_control", 
-    cbet_freq: "Low", 
-    example: "9h 8h 7d" 
+  en: {
+    dry: { label: "Dry Board", features: ["Rainbow", "Disconnected"], strategy_adjustment: "high_fold_equity" },
+    wet: { label: "Wet Board", features: ["Suited/Connected", "Paired"], strategy_adjustment: "pot_control" }
   }
 };
 
-// --- D. 牌面纹理新手教学 ---
-window.PokerData.TEXTURE_EXPLANATION = {
-  dry: {
-    title: "🌵 干燥牌面 (Dry)",
-    desc: "牌与牌毫无联系。谁的对子大谁赢。",
-    strategy: "适合诈唬！大胆持续下注 (C-Bet)。"
-  },
-  wet: {
-    title: "🌧️ 潮湿牌面 (Wet)",
-    desc: "牌面紧凑（连张/同花），极易成顺/花。",
-    strategy: "务必小心！哪怕有AA也可能输给顺子。"
-  }
-};
+// --- D. 牌面纹理新手教学 (无 UI 使用暂略，保留结构) ---
+window.PokerData.TEXTURE_EXPLANATION = { zh: {}, en: {} };
 
 // --- E. 数学概率与补牌速查表 ---
 window.PokerData.PROBABILITIES = {
@@ -84,58 +93,19 @@ window.PokerData.PROBABILITIES = {
     any_two_to_pair: { label: "中一对", prob: 32, note: "最常见" }
   },
   outs_lookup: {
-    straight_draw_gutshot: { 
-      label: "卡顺 (Gutshot)", 
-      outs: 4, 
-      equity_flop: 16, 
-      advice: "别追，除非极其便宜" 
-    },
-    overcards: { 
-      label: "两张高牌 (Overcards)", 
-      outs: 6, 
-      equity_flop: 24, 
-      advice: "有反超机会，但也可能输给底对" 
-    },
-    straight_draw_oesd: { 
-      label: "两头顺 (OESD)", 
-      outs: 8, 
-      equity_flop: 32, 
-      advice: "强听牌，可以积极玩" 
-    },
-    flush_draw: { 
-      label: "同花听牌 (Flush Draw)", 
-      outs: 9, 
-      equity_flop: 36, 
-      advice: "非常强，甚至可以加注半诈唬" 
-    },
-    flush_draw_nut: { 
-      label: "坚果花听牌 (Nut FD)", 
-      outs: 9, 
-      equity_flop: 36, 
-      advice: "极强！有摊牌价值+听牌价值" 
-    },
-    combo_draw: { 
-      label: "双重听牌 (Combo Draw)", 
-      outs: 15, 
-      equity_flop: 54, 
-      advice: "超级强牌！直接 All-in！" 
-    }
+    straight_draw_gutshot: { label: "卡顺 (Gutshot)", outs: 4, equity_flop: 16, advice: "别追，除非极其便宜" },
+    overcards: { label: "两张高牌 (Overcards)", outs: 6, equity_flop: 24, advice: "有反超机会，但也可能输给底对" },
+    straight_draw_oesd: { label: "两头顺 (OESD)", outs: 8, equity_flop: 32, advice: "强听牌，可以积极玩" },
+    flush_draw: { label: "同花听牌 (Flush Draw)", outs: 9, equity_flop: 36, advice: "非常强，甚至可以加注半诈唬" },
+    flush_draw_nut: { label: "坚果花听牌 (Nut FD)", outs: 9, equity_flop: 36, advice: "极强！有摊牌价值+听牌价值" },
+    combo_draw: { label: "双重听牌 (Combo Draw)", outs: 15, equity_flop: 54, advice: "超级强牌！直接 All-in！" }
   }
 };
 
 // --- F. 策略参数配置 ---
 window.PokerData.STRATEGY_CONFIG = {
-  preflop: {
-    open_raise_base: 3.0, 
-    iso_raise_per_limper: 1.0, 
-    min_equity_to_call: 33 
-  },
-  postflop: {
-    cbet_dry: 0.33,
-    cbet_wet: 0.66,
-    value_bet: 0.75, 
-    bluff_raise: 3.0 
-  }
+  preflop: { open_raise_base: 3.0, iso_raise_per_limper: 1.0, min_equity_to_call: 33 },
+  postflop: { cbet_dry: 0.33, cbet_wet: 0.66, value_bet: 0.75, bluff_raise: 3.0 }
 };
 
 // --- G. 手牌分析库 ---
@@ -175,19 +145,55 @@ window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
   },
   en: {
     pre_monster_pair: { label: "Premium Pair", advice: "Raise/4-Bet", reason: "Build pot with AA/KK/QQ." },
+    pre_strong_pair: { label: "Strong Pair", advice: "Raise/Call", reason: "Good value, but watch out for overcards." },
+    pre_small_pair: { label: "Set Mining", advice: "Speculate", reason: "Aim for a Set. Fold if you miss." },
+    pre_premium_high: { label: "Premium High", advice: "Raise/Value", reason: "AK/AQ dominates. Lead the action." },
+    pre_suited_connector: { label: "Suited Connector", advice: "Speculate", reason: "High implied odds. Great for deep stacks." },
+    pre_suited_ace: { label: "Suited Ace", advice: "Semi-Bluff", reason: "Blocker to nut flush + wheel potential." },
+    pre_broadway: { label: "Broadways", advice: "Caution", reason: "Good top pair potential but kicker trouble." },
+    pre_trash: { label: "Trash", advice: "Fold", reason: "No value. Save your chips." },
+
     made_straight_flush: { label: "Straight Flush", advice: "Slowplay", reason: "Monster hand." },
-    made_straight_flush_nuts: { label: "Nut Straight Flush", advice: "Slowplay", reason: "Invincible." },
+    made_straight_flush_nuts: { label: "Nut Straight Flush", advice: "Slowplay", reason: "Invincible hand. Extract max value." },
+    made_straight_flush_lower: { label: "Low Straight Flush", advice: "Caution", reason: "Warning: Higher Straight Flush possible!" },
+    made_quads: { label: "Quads", advice: "Slowplay", reason: "Bomb! Losing is extremely rare." },
+    made_full_house: { label: "Full House", advice: "Value Bet", reason: "Strong hand. Only loses to bigger boats." },
+    made_flush_nuts: { label: "Nut Flush", advice: "Value Bet", reason: "You have the Ace flush. Unbeatable unless board pairs." },
+    made_flush: { label: "Flush", advice: "Value/Protect", reason: "Watch out for Ace flush or Full House." },
+    made_straight: { label: "Straight", advice: "Attack", reason: "Strong hand. Be careful on flushed boards." },
+    monster: { label: "Set/Trips", advice: "Value", reason: "Very strong. Build a big pot!" },
+
+    top_pair: { label: "Top Pair", advice: "Value/Control", reason: "Usually ahead. Don't overplay on wet boards." },
+    middle_pair: { label: "Middle Pair", advice: "Check/Bluff-Catch", reason: "Showdown value, but loses to aggression." },
+    bottom_pair: { label: "Bottom Pair", advice: "Check/Fold", reason: "Weak showdown value." },
+    pocket_pair_below: { label: "Underpair", advice: "Check/Fold", reason: "Easily dominated." },
+
+    flush_draw_nut: { label: "Nut Flush Draw", advice: "Semi-Bluff/All-in", reason: "A-High showdown value + draw." },
+    flush_draw: { label: "Flush Draw", advice: "Call/Semi-Bluff", reason: "Good odds to call or raise." },
+    straight_draw_oesd: { label: "OESD", advice: "Attack", reason: "8 outs. Strong draw." },
+    straight_draw_gutshot: { label: "Gutshot", advice: "Caution", reason: "Only 4 outs. Don't chase." },
+    combo_draw: { label: "Combo Draw", advice: "All-in", reason: "Massive equity! Often ahead of made hands." },
+    overcards: { label: "Overcards", advice: "Float", reason: "No made hand, but 6 outs." },
     trash: { label: "Trash", advice: "Fold", reason: "No value." }
   }
 };
 
-// --- H. 具体纹理特征 (恢复被误删的模块) ---
+// --- H. 具体纹理特征 (双语版) ---
 window.PokerData.TEXTURE_STRATEGIES = {
-  TEX_PAIRED: { name: "公对面 (Paired)", desc: "有人可能中三条或葫芦。" },
-  TEX_MONOTONE: { name: "单色面 (Monotone)", desc: "极度危险，易有同花。" },
-  TEX_TWO_TONE: { name: "听花面 (Two-Tone)", desc: "听牌很多，需保护手牌。" },
-  TEX_CONNECTED: { name: "连张面 (Connected)", desc: "顺子可能性大。" },
-  TEX_RAINBOW_DRY: { name: "干燥面 (Dry)", desc: "安全，适合诈唬。" }
+  zh: {
+    TEX_PAIRED: { name: "公对面 (Paired)", desc: "有人可能中三条或葫芦。" },
+    TEX_MONOTONE: { name: "单色面 (Monotone)", desc: "极度危险，易有同花。" },
+    TEX_TWO_TONE: { name: "听花面 (Two-Tone)", desc: "听牌很多，需保护手牌。" },
+    TEX_CONNECTED: { name: "连张面 (Connected)", desc: "顺子可能性大。" },
+    TEX_RAINBOW_DRY: { name: "干燥面 (Dry)", desc: "安全，适合诈唬。" }
+  },
+  en: {
+    TEX_PAIRED: { name: "Paired Board", desc: "Trips or Full House possible." },
+    TEX_MONOTONE: { name: "Monotone", desc: "Danger! Flush likely made." },
+    TEX_TWO_TONE: { name: "Two-Tone", desc: "Heavy draws available. Protect hand." },
+    TEX_CONNECTED: { name: "Connected", desc: "Straight possibilities." },
+    TEX_RAINBOW_DRY: { name: "Dry/Rainbow", desc: "Safe. Good for bluffing." }
+  }
 };
 
 // --- I. UI 文本 ---
