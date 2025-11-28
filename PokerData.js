@@ -248,3 +248,149 @@ window.PokerData.TEXTS = {
     selecting_hero: 'Select Hand'
   }
 };
+
+/**
+ * =================================================================
+ * POKER ADVISOR PRO - EXTENDED DATA MODULES (v2.0)
+ * 基于《德州扑克牌局分析与数据》文档补充的核心博弈数据
+ * =================================================================
+ */
+
+// --- 1. 位置与起手牌策略修正 (Position Logic) ---
+// 依据文档 2.2: 前位紧(Tight)，后位松(Loose)
+window.PokerData.POSITIONS = {
+  EP: { 
+    label: "前位 (Early Position)", 
+    range_modifier: "Tight", 
+    description: "处于危险位置，后方有大量对手。只玩最强的怪兽牌和强对子。",
+    action_plan: "除非是AA/KK/AK，否则遇到反击建议弃牌。"
+  },
+  MP: { 
+    label: "中位 (Middle Position)", 
+    range_modifier: "Normal", 
+    description: "位置适中。可以开始玩一些强高张和中对子。",
+    action_plan: "标准打法，注意观察后位玩家的动作。"
+  },
+  LP: { 
+    label: "后位/按钮 (Late/BTN)", 
+    range_modifier: "Loose", 
+    description: "黄金位置！拥有信息优势。可玩同花连张、小对子等投机牌。",
+    action_plan: "积极偷盲，利用位置施压，多玩底池。"
+  },
+  BLINDS: { 
+    label: "盲注位 (SB/BB)", 
+    range_modifier: "Defensive", 
+    description: "被迫下注的位置。主要任务是防守，不要轻易造大底池。",
+    action_plan: "赔率合适时跟注看牌，击中就打，没中就撤。"
+  }
+};
+
+// --- 2. 牌面纹理定义与逻辑 (Board Texture Logic) ---
+// 依据文档 3.1: 区分干燥与潮湿牌面，决定诈唬或控池
+window.PokerData.BOARD_TEXTURES = {
+  dry: { 
+    id: "dry",
+    label: "干燥牌面 (Dry)", 
+    features: ["Rainbow (杂色)", "Disconnected (不连张)", "One High Card"], 
+    strategy_adjustment: "high_fold_equity", // 诈唬成功率高
+    cbet_freq: "High", // 建议高频持续下注
+    example: ["Ks", "7d", "2h"] 
+  },
+  wet: { 
+    id: "wet",
+    label: "潮湿牌面 (Wet)", 
+    features: ["Suited (同花面)", "Connected (连张面)", "Paired (公对)"], 
+    strategy_adjustment: "pot_control", // 需控池
+    cbet_freq: "Low", // 减少诈唬，有牌才打
+    example: ["9h", "8h", "7d"] 
+  }
+};
+
+// --- 3. 牌面纹理新手教学注释 (Tooltip/Help Text) ---
+// 用于前端UI显示，帮助新手理解“干/湿”概念
+window.PokerData.TEXTURE_EXPLANATION = {
+  dry: {
+    title: "什么是“干燥牌面”？",
+    desc: "牌与牌之间毫无联系，像沙漠一样长不出“听牌”。",
+    analogy: "安全区：通常谁现在的对子大，谁就是赢家。",
+    strategy: "适合诈唬！如果你翻前加注过，即使没中也可以下注吓跑对手。"
+  },
+  wet: {
+    title: "什么是“潮湿牌面”？",
+    desc: "牌面紧凑（连张/同花），像雨林一样充满危险和机会。",
+    analogy: "雷区：对手极易拿到顺子、同花或两对。",
+    strategy: "务必小心！哪怕你有AA，如果没买到坚果，尽量不要造大底池。"
+  }
+};
+
+// --- 4. 数学概率与补牌速查表 (Math & Probabilities) ---
+// 依据文档 3.2 和 4.1 (4-2法则)
+window.PokerData.PROBABILITIES = {
+  // A. 翻牌击中概率 (Flop Hit Rates)
+  flop_hit: {
+    pocket_pair_to_set: { label: "口袋对 -> 中三条 (Set)", prob: 0.12, note: "约8次中1次" },
+    suited_to_flush: { label: "同花牌 -> 直接中同花", prob: 0.008, note: "像中彩票一样难" },
+    suited_to_flush_draw: { label: "同花牌 -> 中四张听花", prob: 0.11, note: "主要价值来源" },
+    any_two_to_pair: { label: "任意牌 -> 中一对", prob: 0.32, note: "最常见的情况" }
+  },
+  
+  // B. 听牌补牌数与胜率 (Outs & Equity)
+  // equity_river_approx = outs * 4 (在翻牌圈估算)
+  outs_lookup: {
+    gutshot: { 
+      label: "卡顺 (Gutshot)", 
+      outs: 4, 
+      equity_flop: 0.16, // 16%
+      advice: "别追，除非极其便宜" 
+    },
+    overcards: { 
+      label: "两张高牌 (Overcards)", 
+      outs: 6, 
+      equity_flop: 0.24, // 24%
+      advice: "有反超机会，但也可能输给底对" 
+    },
+    oesd: { 
+      label: "两头顺 (Open-Ended)", 
+      outs: 8, 
+      equity_flop: 0.32, // 32%
+      advice: "强听牌，可以积极玩" 
+    },
+    flush_draw: { 
+      label: "同花听牌 (Flush Draw)", 
+      outs: 9, 
+      equity_flop: 0.36, // 36%
+      advice: "非常强，甚至可以加注半诈唬" 
+    },
+    combo_draw: { 
+      label: "双重听牌 (Combo Draw)", 
+      outs: 15, 
+      equity_flop: 0.54, // 54%
+      advice: "超级强牌！此时你的胜率通常已经超过了成牌，直接All-in！" 
+    }
+  },
+
+  // C. 经典对决胜率 (Pre-flop Matchups)
+  matchups: {
+    pair_vs_underpair: { label: "大对子 vs 小对子", win_rate: "82% vs 18%", note: "碾压" },
+    pair_vs_overcards: { label: "对子 vs 高张 (AK)", win_rate: "55% vs 45%", note: "跑马 (Coin Flip)" },
+    domination: { label: "AK vs AQ", win_rate: "74% vs 26%", note: "压制 (Dominated)" }
+  }
+};
+
+// --- 5. 策略参数配置 (Strategy Configuration) ---
+// 依据文档 模块C: 新手建议动作参数
+window.PokerData.STRATEGY_CONFIG = {
+  // 翻牌前加注公式
+  preflop: {
+    open_raise_base: 3.0, // 标准加注：3BB
+    iso_raise_per_limper: 1.0, // 每有一个人平跟，加注额增加1BB
+    min_equity_to_call: 0.33 // 一般跟注所需最低胜率
+  },
+  // 翻牌后下注尺度 (相对于底池 Pot)
+  postflop: {
+    cbet_dry: 0.33, // 干燥面下小注 (1/3) 诈唬便宜
+    cbet_wet: 0.66, // 潮湿面下重注 (2/3) 保护手牌
+    value_bet: 0.75, // 价值下注通常打 3/4
+    bluff_raise: 3.0 // 诈唬加注通常是对手下注额的3倍
+  }
+};
