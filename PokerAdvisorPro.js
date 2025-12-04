@@ -474,24 +474,35 @@ function TexasHoldemAdvisor() {
     setResult(null);
 
     setTimeout(() => {
-      // 1. 蒙特卡洛模拟
+      // 1. 蒙特卡洛模拟 (优化版)
       const SIMULATIONS = 1500;
       let wins = 0, ties = 0;
       const activeOpponents = players.filter(p => p.active).length;
-      let fullDeck = [];
-      for (let d = 0; d < deckCount; d++) for (let s of SUITS) for (let r of RANKS) fullDeck.push({ rank: r, suit: s });
+
+      // 优化点 1: 预先构建模拟牌组
       const knownCards = [...heroHand, ...communityCards].filter(Boolean);
+      const knownCardSet = new Set(knownCards.map(c => `${c.rank}${c.suit}`));
+      let simulationDeck = [];
+      for (let d = 0; d < deckCount; d++) {
+        for (const s of SUITS) {
+          for (const r of RANKS) {
+            if (!knownCardSet.has(`${r}${s}`)) {
+              simulationDeck.push({ rank: r, suit: s });
+            }
+          }
+        }
+      }
+
       for (let i = 0; i < SIMULATIONS; i++) {
-        let deck = [...fullDeck];
-        knownCards.forEach(kc => { const idx = deck.findIndex(c => c.rank === kc.rank && c.suit === kc.suit); if (idx !== -1) deck.splice(idx, 1); });
-        for (let j = deck.length - 1; j > 0; j--) { const k = Math.floor(Math.random() * (j + 1)); [deck[j], deck[k]] = [deck[k], deck[j]]; }
-        const runout = [...communityCards.filter(Boolean)];
-        while (runout.length < 5) runout.push(deck.pop());
-        const oppHands = [];
-        for (let p = 0; p < activeOpponents; p++) oppHands.push([deck.pop(), deck.pop()]);
-        const heroScore = evaluateHand([...heroHand, ...runout]);
+        // 优化点 2: 高效洗牌与发牌
+        for (let j = simulationDeck.length - 1; j > 0; j--) { const k = Math.floor(Math.random() * (j + 1)); [simulationDeck[j], simulationDeck[k]] = [simulationDeck[k], simulationDeck[j]]; }
+        
+        const boardRunout = communityCards.filter(Boolean);
+        const cardsToDraw = 5 - boardRunout.length + activeOpponents * 2;
+        const drawnCards = simulationDeck.slice(0, cardsToDraw);
+        const heroScore = evaluateHand([...heroHand, ...boardRunout, ...drawnCards.slice(0, 5 - boardRunout.length)]);
         let heroWins = true; let isTie = false;
-        for (let oh of oppHands) { const s = evaluateHand([...oh, ...runout]); if (s > heroScore) { heroWins = false; break; } if (s === heroScore) isTie = true; }
+        for (let p = 0; p < activeOpponents; p++) { const oppHand = drawnCards.slice(5 - boardRunout.length + p * 2, 5 - boardRunout.length + p * 2 + 2); const s = evaluateHand([...oppHand, ...boardRunout, ...drawnCards.slice(0, 5 - boardRunout.length)]); if (s > heroScore) { heroWins = false; break; } if (s === heroScore) isTie = true; }
         if (heroWins && !isTie) wins++; if (heroWins && isTie) ties++;
       }
       const equity = ((wins + (ties/2)) / SIMULATIONS) * 100;
