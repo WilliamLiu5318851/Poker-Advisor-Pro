@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RefreshCw, Trophy, Users, Brain, Info, ArrowRight, Flame, Zap, Settings, X, ShieldCheck, Flag, Lightbulb, Grid, MapPin, Calculator, HelpCircle, RotateCcw, CheckSquare, CheckCircle, MousePointerClick, ChevronDown } from 'lucide-react';
-import Chart from 'chart.js';
 
 // 安全获取数据层
 const PokerData = window.PokerData || { 
@@ -19,7 +18,7 @@ const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTURE_STRATEGIES, POSITIONS, STR
 const { SUITS, RANKS, RANK_VALUES, PREFLOP_CHARTS, MATCHUP_EQUITY } = CONSTANTS; // Assuming PREFLOP_CHARTS and MATCHUP_EQUITY are part of CONSTANTS
 
 // 注册 Chart.js 必要的组件
-import { CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 /**
