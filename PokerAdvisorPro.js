@@ -735,26 +735,68 @@ function TexasHoldemAdvisor() {
       const drawStats = PROBABILITIES.outs_lookup[analysisKey];
 
       let betSizes = null;
-      if (adviceKey.includes('raise') || adviceKey.includes('allin')) {
-         const s = heroStack;
-         const cap = (val) => Math.min(val, s);
+      if ((adviceKey.includes('raise') || adviceKey.includes('allin')) && !isCallAllIn) {
+         const heroCurrentStack = heroStack - heroBet; // 当前可用于下注的筹码
+         const cap = (val) => Math.min(val, heroCurrentStack);
          const isBluff = adviceKey.includes('bluff');
          const bs = isBluff ? profile.bet_sizing.bluff : profile.bet_sizing.value;
+         const activeOpponents = players.filter(p => p.active).length;
          
-         // 核心升级：智能判断下注基准
-         // 如果是开池下注(前面无人下注)，底池可能很小。我们使用一个更合理的基准。
-         // 假设一个标准开池是 3BB，这里我们用一个动态值来模拟。
-         // 如果 totalPot 小于 heroStack 的 5%，则认为底池太小，需要一个更大的基准。
+         // --- 专家级下注建议逻辑 (v2.0) ---
          const isOpeningBet = callAmount === 0;
-         const smallPotThreshold = heroStack * 0.05;
-         const basePot = (isOpeningBet && totalPot < smallPotThreshold) ? Math.max(totalPot, smallPotThreshold) * 2 : totalPot;
+         const allInThreshold = heroCurrentStack * 0.7; // 当下注额超过剩余筹码的70%时，直接建议All-in
 
-         betSizes = { 
-           // 确保最小下注额不为0
-           smart: cap(Math.max(1, Math.round(basePot * bs.small))), 
-           value: cap(Math.max(1, Math.round(basePot * bs.med))),   
-           pot: cap(Math.max(1, Math.round(basePot * bs.large)))    
+         let smallBet, mediumBet, largeBet;
+
+         if (street === 0) {
+            // 场景1: 翻牌前 (Pre-flop) - 基于大盲注 (假设 BB=10)
+            const BB = 10; // 假设大盲为10，未来可以设为变量
+            const openRaiseSize = 3 * BB + (players.length - activeOpponents) * BB; // 标准开池 + 每个limper加1BB
+            const threeBetSize = (callAmount * 3) + (totalPot - callAmount); // 标准3-Bet尺度
+            
+            smallBet = isOpeningBet ? openRaiseSize : threeBetSize * 0.8;
+            mediumBet = isOpeningBet ? openRaiseSize * 1.33 : threeBetSize;
+            largeBet = isOpeningBet ? openRaiseSize * 1.66 : threeBetSize * 1.2;
+
+         } else {
+            // 场景2: 翻牌后 (Post-flop) - 基于底池
+            const textureModifier = textureRes.type === 'wet' ? 1.25 : 1.0; // 湿润牌面加大下注
+            const multiwayModifier = activeOpponents > 1 ? 1.2 : 1.0; // 多人底池加大下注
+            const finalModifier = textureModifier * multiwayModifier;
+
+            if (isOpeningBet) {
+                // 场景2a: 开池下注 (C-Bet or Probe Bet)
+                const basePot = totalPot;
+                smallBet = basePot * bs.small * finalModifier;
+                mediumBet = basePot * bs.med * finalModifier;
+                largeBet = basePot * bs.large * finalModifier;
+            } else {
+                // 场景2b: 反击加注 (Raise)
+                const potAfterCall = totalPot + callAmount;
+                const raiseBase = callAmount; // 最后一个加注额
+
+                // 标准加注尺度: 2x-3x 对手的下注
+                smallBet = raiseBase * 2 + potAfterCall;
+                mediumBet = raiseBase * 2.5 + potAfterCall;
+                largeBet = raiseBase * 3 + potAfterCall;
+            }
+         }
+
+         // 应用封顶和All-in阈值
+         const finalizeBet = (val) => {
+            // 如果对手已经all-in，我们的加注就是我们自己的all-in
+            const opponentAllIn = players.some(p => p.active && p.bet >= heroStack);
+            if (opponentAllIn) return heroCurrentStack;
+
+            const finalValue = Math.round(val);
+            if (finalValue >= allInThreshold) return heroCurrentStack; // 如果计算值接近All-in，直接All-in
+            
+            // 确保最小加注额合法 (至少是上一个加注额的两倍)
+            const minRaise = callAmount > 0 ? callAmount * 2 : 1;
+            return cap(Math.max(minRaise, finalValue));
          };
+
+         betSizes = { smart: finalizeBet(smallBet), value: finalizeBet(mediumBet), pot: finalizeBet(largeBet) };
       }
 
       if (drawStats) {
