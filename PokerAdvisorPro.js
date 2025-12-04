@@ -734,15 +734,24 @@ function TexasHoldemAdvisor() {
 
       let betSizes = null;
       if (adviceKey.includes('raise') || adviceKey.includes('allin')) {
-         const p = totalPot, s = heroStack;
+         const s = heroStack;
          const cap = (val) => Math.min(val, s);
          const isBluff = adviceKey.includes('bluff');
          const bs = isBluff ? profile.bet_sizing.bluff : profile.bet_sizing.value;
          
+         // 核心升级：智能判断下注基准
+         // 如果是开池下注(前面无人下注)，底池可能很小。我们使用一个更合理的基准。
+         // 假设一个标准开池是 3BB，这里我们用一个动态值来模拟。
+         // 如果 totalPot 小于 heroStack 的 5%，则认为底池太小，需要一个更大的基准。
+         const isOpeningBet = callAmount === 0;
+         const smallPotThreshold = heroStack * 0.05;
+         const basePot = (isOpeningBet && totalPot < smallPotThreshold) ? Math.max(totalPot, smallPotThreshold) * 2 : totalPot;
+
          betSizes = { 
-           smart: cap(Math.round(p * bs.small)), 
-           value: cap(Math.round(p * bs.med)),   
-           pot: cap(Math.round(p * bs.large))    
+           // 确保最小下注额不为0
+           smart: cap(Math.max(1, Math.round(basePot * bs.small))), 
+           value: cap(Math.max(1, Math.round(basePot * bs.med))),   
+           pot: cap(Math.max(1, Math.round(basePot * bs.large)))    
          };
       }
 
