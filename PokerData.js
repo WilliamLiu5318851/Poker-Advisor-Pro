@@ -59,20 +59,89 @@ window.PokerData.STRATEGY_PROFILES = {
 // --- C. 位置与起手牌策略 ---
 window.PokerData.POSITIONS = {
   zh: {
-    EP: { label: "前位 (EP)", range_modifier: "Tight", description: "⚠️ 危险位置：你是最早行动的人之一。", action_plan: "只玩 AA/KK/AK/QQ 等核心强牌。遇反击弃牌。" },
-    MP: { label: "中位 (MP)", range_modifier: "Normal", description: "⚖️ 标准位置：位置适中。", action_plan: "适当放宽范围，玩强高张(AQ/AJ)和中对子。" },
-    LP: { label: "后位 (LP/BTN)", range_modifier: "Loose", description: "🎯 黄金位置：最后行动，信息优势最大！", action_plan: "积极偷盲，利用位置施压，多玩同花连张。" },
-    BLINDS: { label: "盲注 (SB/BB)", range_modifier: "Defensive", description: "🛡️ 防守位置：被迫下注，翻后先行动。", action_plan: "主要防守。赔率合适跟注，没中就撤。" }
+    EP: { 
+      label: "前位 (EP)", 
+      range_modifier: "Tight", 
+      description: "⚠️ 危险位置：你是最早行动的人之一。", 
+      action_plan: "只玩 AA/KK/AK/QQ 等核心强牌。遇反击弃牌。",
+      strategy: { open_raise_hands: "77+,AJs+,KQs,AQo+", defend_hands: "99+,AK" } // 新增：可被程序直接读取的策略
+    },
+    MP: { 
+      label: "中位 (MP)", 
+      range_modifier: "Normal", 
+      description: "⚖️ 标准位置：位置适中。", 
+      action_plan: "适当放宽范围，玩强高张(AQ/AJ)和中对子。",
+      strategy: { open_raise_hands: "55+,A9s+,KTs+,QTs+,AJo+", defend_hands: "88+,AQs+" }
+    },
+    LP: { 
+      label: "后位 (LP/BTN)", 
+      range_modifier: "Loose", 
+      description: "🎯 黄金位置：最后行动，信息优势最大！", 
+      action_plan: "积极偷盲，利用位置施压，多玩同花连张。",
+      strategy: { open_raise_hands: "22+,A2s+,K2s+,Q8s+,J8s+,T8s+,97s+,87s,76s,65s,A8o+,KTo+", steal_blinds: true }
+    },
+    BLINDS: { 
+      label: "盲注 (SB/BB)", 
+      range_modifier: "Defensive", 
+      description: "🛡️ 防守位置：被迫下注，翻后先行动。", 
+      action_plan: "主要防守。赔率合适跟注，没中就撤。",
+      strategy: { defend_vs_steal_hands: "22+,A2s+,K9s+,Q9s+,J9s+,T9s,A2o+,KTo+,QTo,JTo", check_fold_priority: true }
+    }
   },
   en: {
-    EP: { label: "Early Pos (EP)", range_modifier: "Tight", description: "⚠️ Danger Zone: Act early.", action_plan: "Premium hands only (AA/KK/AK)." },
-    MP: { label: "Middle Pos (MP)", range_modifier: "Normal", description: "⚖️ Standard Position.", action_plan: "Widen range slightly (AQ/AJ/99+)." },
-    LP: { label: "Late Pos (LP/BTN)", range_modifier: "Loose", description: "🎯 Money Position: Act last.", action_plan: "Steal blinds, play suited connectors." },
-    BLINDS: { label: "Blinds (SB/BB)", range_modifier: "Defensive", description: "🛡️ Defensive: Out of position.", action_plan: "Defend with good odds. Fit or fold." }
+    EP: { 
+      label: "Early Pos (EP)", 
+      range_modifier: "Tight", 
+      description: "⚠️ Danger Zone: Act early.", 
+      action_plan: "Premium hands only (AA/KK/AK).",
+      strategy: { open_raise_hands: "77+,AJs+,KQs,AQo+", defend_hands: "99+,AK" }
+    },
+    MP: { label: "Middle Pos (MP)", range_modifier: "Normal", description: "⚖️ Standard Position.", action_plan: "Widen range slightly (AQ/AJ/99+).", strategy: { open_raise_hands: "55+,A9s+,KTs+,QTs+,AJo+", defend_hands: "88+,AQs+" } },
+    LP: { label: "Late Pos (LP/BTN)", range_modifier: "Loose", description: "🎯 Money Position: Act last.", action_plan: "Steal blinds, play suited connectors.", strategy: { open_raise_hands: "22+,A2s+,K2s+,Q8s+,J8s+,T8s+,97s+,87s,76s,65s,A8o+,KTo+", steal_blinds: true } },
+    BLINDS: { label: "Blinds (SB/BB)", range_modifier: "Defensive", description: "🛡️ Defensive: Out of position.", action_plan: "Defend with good odds. Fit or fold.", strategy: { defend_vs_steal_hands: "22+,A2s+,K9s+,Q9s+,J9s+,T9s,A2o+,KTo+,QTo,JTo", check_fold_priority: true } }
   }
 };
 
-// --- E. 数学概率 ---
+// --- D. 翻牌前起手牌范围图 (GTO Pre-flop Charts) ---
+// 用于更精确的翻牌前决策
+window.PokerData.PREFLOP_CHARTS = {
+  // 6人桌, 100BB
+  '6max_100bb': {
+    EP: "77+,AJs+,KQs,AQo+", // 前位 (UTG)
+    MP: "55+,A9s+,KTs+,QTs+,AJo+", // 中位 (MP)
+    CO: "22+,A2s+,K9s+,Q9s+,J9s+,T8s+,98s,87s,76s,AJo+,KQo", // Cutoff
+    BTN: "22+,A2s+,K2s+,Q8s+,J8s+,T8s+,97s+,87s,76s,65s,A8o+,KTo+", // Button (后位)
+    SB: "33+,A2s+,K8s+,Q9s+,J9s+,T9s,A7o+,KTo+,QTo+", // 小盲
+  }
+  // 未来可扩展更多场景，如9人桌，不同筹码深度等
+};
+
+// --- E. 经典对抗胜率 (Classic Matchup Equity) ---
+// 用于快速参考和增强建议理由
+window.PokerData.MATCHUP_EQUITY = {
+  'AA_vs_KK': {
+    hero: 'AA', villain: 'KK', equity: 82.0,
+    description_zh: '典型的冤家牌，AA碾压KK。',
+    description_en: 'Classic cooler. AA dominates KK.'
+  },
+  'JJ_vs_AK': {
+    hero: 'JJ', villain: 'AK', equity: 54.1,
+    description_zh: '经典的跑马(Flip)，胜率五五开。',
+    description_en: 'A classic coin flip, roughly 50/50.'
+  },
+  'AK_vs_AQ': {
+    hero: 'AK', villain: 'AQ', equity: 73.5,
+    description_zh: 'AK 强力压制 AQ，因为Kicker优势。',
+    description_en: 'AK strongly dominates AQ due to the kicker.'
+  },
+  '87s_vs_AA': {
+    hero: '87s', villain: 'AA', equity: 22.5,
+    description_zh: '虽然落后，但同花连张有不错的反超机会。',
+    description_en: 'Suited connectors have a decent chance to outdraw the overpair.'
+  }
+};
+
+// --- F. 数学概率 ---
 window.PokerData.PROBABILITIES = {
   flop_hit: {
     pocket_pair_to_set: { label: "中三条", prob: 12, note: "8中1" },
@@ -81,16 +150,16 @@ window.PokerData.PROBABILITIES = {
     any_two_to_pair: { label: "中一对", prob: 32, note: "最常见" }
   },
   outs_lookup: {
-    straight_draw_gutshot: { label: "卡顺 (Gutshot)", outs: 4, equity_flop: 16, advice: "别追，除非极其便宜" },
-    overcards: { label: "两张高牌 (Overcards)", outs: 6, equity_flop: 24, advice: "有反超机会，但也可能输给底对" },
-    straight_draw_oesd: { label: "两头顺 (OESD)", outs: 8, equity_flop: 32, advice: "强听牌，可以积极玩" },
-    flush_draw: { label: "同花听牌 (Flush Draw)", outs: 9, equity_flop: 36, advice: "非常强，甚至可以加注半诈唬" },
-    flush_draw_nut: { label: "坚果花听牌 (Nut FD)", outs: 9, equity_flop: 36, advice: "极强！有摊牌价值+听牌价值" },
-    combo_draw: { label: "双重听牌 (Combo Draw)", outs: 15, equity_flop: 54, advice: "超级强牌！直接 All-in！" }
+    straight_draw_gutshot: { label: "卡顺 (Gutshot)", outs: 4, equity_flop: 16.5, advice: "别追，除非极其便宜" },
+    overcards: { label: "两张高牌 (Overcards)", outs: 6, equity_flop: 24.1, advice: "有反超机会，但也可能输给底对" },
+    straight_draw_oesd: { label: "两头顺 (OESD)", outs: 8, equity_flop: 31.5, advice: "强听牌，可以积极玩" },
+    flush_draw: { label: "同花听牌 (Flush Draw)", outs: 9, equity_flop: 35.0, advice: "非常强，甚至可以加注半诈唬" },
+    flush_draw_nut: { label: "坚果花听牌 (Nut FD)", outs: 9, equity_flop: 35.0, advice: "极强！有摊牌价值+听牌价值" },
+    combo_draw: { label: "双重听牌 (Combo Draw)", outs: 15, equity_flop: 54.1, advice: "超级强牌！直接 All-in！" }
   }
 };
 
-// --- F. 手牌分析库 ---
+// --- G. 手牌分析库 ---
 window.PokerData.HAND_ANALYSIS_DEFINITIONS = {
   zh: {
     // Pre-flop High Value

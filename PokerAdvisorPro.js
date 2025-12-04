@@ -15,7 +15,7 @@ const PokerData = window.PokerData || {
   TEXTS: { zh: {}, en: {} }
 };
 const { CONSTANTS, HAND_ANALYSIS_DEFINITIONS, TEXTURE_STRATEGIES, POSITIONS, STRATEGY_PROFILES, BOARD_TEXTURES, PROBABILITIES, STRATEGY_CONFIG, TEXTS } = PokerData;
-const { SUITS, RANKS, RANK_VALUES } = CONSTANTS;
+const { SUITS, RANKS, RANK_VALUES, PREFLOP_CHARTS, MATCHUP_EQUITY } = CONSTANTS;
 
 /**
  * 德州扑克助手 Pro (v7.0 - Strict Logic)
@@ -341,6 +341,88 @@ const PositionSelector = ({ show, onClose, onPositionSelect, currentPosition, PO
   );
 };
 
+// --- GTO 范围解析器 ---
+
+/**
+ * 将手牌数组转换为标准扑克符号
+ * @param {Array} hand - e.g., [{rank: 'A', suit: 's'}, {rank: 'K', suit: 'd'}]
+ * @returns {String} - e.g., "AKo"
+ */
+const getHandNotation = (hand) => {
+  if (!hand || hand.length < 2 || !hand[0] || !hand[1]) return null;
+
+  const rank1 = RANK_VALUES[hand[0].rank];
+  const rank2 = RANK_VALUES[hand[1].rank];
+  const r1 = RANKS[Object.values(RANK_VALUES).indexOf(Math.max(rank1, rank2))];
+  const r2 = RANKS[Object.values(RANK_VALUES).indexOf(Math.min(rank1, rank2))];
+
+  if (r1 === r2) {
+    return `${r1}${r2}`; // Pocket pair, e.g., "AA"
+  }
+
+  const isSuited = hand[0].suit === hand[1].suit;
+  return `${r1}${r2}${isSuited ? 's' : 'o'}`; // e.g., "AKs" or "T9o"
+};
+
+/**
+ * 解析GTO范围字符串并返回一个包含所有手牌的Set
+ * @param {String} rangeStr - e.g., "77+,AJs+,KQs,AQo+"
+ * @returns {Set<String>} - A set of hand notations
+ */
+const parseRangeString = (rangeStr) => {
+  const range = new Set();
+  if (!rangeStr) return range;
+
+  const parts = rangeStr.split(',');
+
+  parts.forEach(part => {
+    // 1. 处理对子 (e.g., "77", "TT+")
+    if (part.length === 2 && part[0] === part[1]) {
+      range.add(part);
+    } else if (part.length === 3 && part[0] === part[1] && part[2] === '+') {
+      const startRank = RANK_VALUES[part[0]];
+      for (let i = startRank; i <= 14; i++) {
+        const rankChar = RANKS[Object.values(RANK_VALUES).indexOf(i)];
+        range.add(`${rankChar}${rankChar}`);
+      }
+    }
+    // 2. 处理非对子 (e.g., "AKs", "QTo", "A9s+")
+    else if (part.length >= 3) {
+      const r1 = part[0];
+      const r2 = part[1];
+      const type = part[2]; // 's' or 'o'
+      const isPlus = part[3] === '+';
+
+      if (!isPlus) {
+        range.add(part);
+      } else {
+        const highRankVal = RANK_VALUES[r1];
+        const lowRankVal = RANK_VALUES[r2];
+        // A9s+ -> A9s, ATs, AJs, AQs, AKs
+        if (highRankVal > lowRankVal) {
+          for (let i = lowRankVal; i < highRankVal; i++) {
+            const rankChar = RANKS[Object.values(RANK_VALUES).indexOf(i)];
+            range.add(`${r1}${rankChar}${type}`);
+          }
+        } 
+        // 97s+ -> 97s, 98s (gappers)
+        else {
+            // This logic can be expanded for gappers if needed, for now, it handles contiguous connectors
+            const highRankVal = RANK_VALUES[r2];
+            const lowRankVal = RANK_VALUES[r1];
+             for (let i = lowRankVal; i < highRankVal; i++) {
+                const rankChar = RANKS[Object.values(RANK_VALUES).indexOf(i)];
+                range.add(`${r2}${rankChar}${type}`);
+            }
+        }
+      }
+    }
+  });
+
+  return range;
+};
+
+
 // --- 主程序 ---
 function TexasHoldemAdvisor() {
   const [lang, setLang] = useState('zh');
@@ -468,6 +550,36 @@ function TexasHoldemAdvisor() {
       if (posData) {
          finalReason += `\n[${posData.label}]: ${posData.action_plan}`;
          if (posData.range_modifier === 'Tight' && adviceKey === 'advice_call' && equity < 40) adviceKey = 'advice_fold';
+      }
+
+      // 翻牌前范围检查 (Pre-flop Range Check)
+      if (street === 0 && heroPosition && PREFLOP_CHARTS) {
+        const chart = PREFLOP_CHARTS['6max_100bb']; // 可根据桌子人数动态选择
+        if (chart && chart[heroPosition]) {
+          const recommendedRange = parseRangeString(chart[heroPosition]);
+          const heroHandNotation = getHandNotation(heroHand);
+          if (recommendedRange.has(heroHandNotation)) {
+            finalReason += `\n✅ ${t.in_position_range || 'In Position Range'}`;
+          } else {
+            finalReason += `\n❌ ${t.out_of_position_range || 'Out of Position Range'}`;
+          }
+        }
+      }
+
+      // 经典对抗分析 (Classic Matchup Analysis)
+      if (street === 0 && MATCHUP_EQUITY) {
+        const heroHandNotation = getHandNotation(heroHand);
+        for (const key in MATCHUP_EQUITY) {
+          const matchup = MATCHUP_EQUITY[key];
+          if (matchup.hero === heroHandNotation || matchup.villain === heroHandNotation) {
+            const isHeroPerspective = matchup.hero === heroHandNotation;
+            const equityPerspective = isHeroPerspective ? matchup.equity : (100 - matchup.equity);
+            const opponentHand = isHeroPerspective ? matchup.villain : matchup.hero;
+            const description = lang === 'zh' ? matchup.description_zh : matchup.description_en;
+            finalReason += `\n\n💡 ${t.classic_matchup || 'Classic Matchup'}: vs ${opponentHand}, ${description} (胜率约 ${equityPerspective.toFixed(1)}%)`;
+            break; // 只显示第一个匹配的经典对抗
+          }
+        }
       }
 
       let finalAdvice = t[adviceKey] || "Advice N/A";
