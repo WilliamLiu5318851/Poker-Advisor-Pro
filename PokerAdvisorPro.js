@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RefreshCw, Trophy, Users, Brain, Info, ArrowRight, Flame, Zap, Settings, X, ShieldCheck, Flag, Lightbulb, Grid, MapPin, Calculator, HelpCircle, RotateCcw, CheckSquare, CheckCircle, MousePointerClick, ChevronDown } from 'lucide-react';
-import CardIcon from './CardIcon.js';
-import SettingsPanel from './SettingsPanel.js';
-import DrawProbabilityChart from './DrawProbabilityChart.js';
-import CardSelector from './CardSelector.js';
-import PositionSelector from './PositionSelector.js';
 
 // 安全获取数据层
 const PokerData = window.PokerData || { 
@@ -26,6 +21,116 @@ const { SUITS, RANKS, RANK_VALUES } = CONSTANTS;
  * 德州扑克助手 Pro (v7.0 - Strict Logic)
  * 修复：严格区分翻牌前后的高牌与垃圾牌，强制执行弃牌策略
  */
+
+// --- Component Definitions (Moved from separate files) ---
+
+const CardIcon = ({ rank, suit }) => {
+  const isRed = suit === 'h' || suit === 'd';
+  const suitSymbol = { s: '♠', h: '♥', d: '♦', c: '♣' }[suit];
+  return (
+    <div className={`bg-white border border-gray-300 rounded-md flex flex-col items-center justify-center select-none shadow-sm w-full h-full ${isRed ? 'text-red-600' : 'text-slate-900'}`}>
+      <span className="font-bold text-sm leading-none">{rank}</span>
+      <span className="text-base leading-none">{suitSymbol}</span>
+    </div>
+  );
+};
+
+const SettingsPanel = ({ show, onClose, t, deckCount, onDeckCountChange, buyInAmount, onBuyInChange }) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between mb-4">
+          <h3 className="font-bold text-white flex items-center gap-2"><Settings className="w-4 h-4" /> {t.game_settings}</h3>
+          <button onClick={onClose}><X /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">{t.deck_count}: <span className="text-white font-mono">{deckCount}</span></label>
+            <input type="range" min="1" max="8" value={deckCount} onChange={onDeckCountChange} className="w-full accent-blue-500" />
+            <div className="flex justify-between text-xs text-slate-600 font-mono"><span>1</span><span>8</span></div>
+            <p className="text-[10px] text-slate-500 mt-1">{t.deck_info}</p>
+          </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">{t.buy_in_amount}</label>
+            <div className="flex items-center bg-slate-900 rounded border border-slate-700"><span className="px-3 text-slate-500">$</span><input type="number" value={buyInAmount} onChange={onBuyInChange} className="w-full bg-transparent py-2 text-white font-mono focus:outline-none" /></div>
+            <p className="text-[10px] text-slate-500 mt-1">{t.buy_in_info}</p>
+          </div>
+          <div className="p-3 bg-slate-900 rounded text-xs text-slate-500 border border-slate-700">
+            <p>GTO Engine v7.0 Active</p>
+            <p className="mt-1 text-emerald-500">• Strict Hand Logic</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DrawProbabilityChart = ({ outs, street, t }) => {
+  if (!outs || street > 2 || street < 1) return null;
+
+  const turnProb = outs * 2.1;
+  const riverProb = outs * 2.2;
+  const turnAndRiverProb = outs * 4.2;
+
+  const probabilities = [];
+  if (street === 1) { // Flop
+    probabilities.push({ label: t.street_turn, prob: turnProb });
+    probabilities.push({ label: `${t.street_turn} or ${t.street_river}`, prob: turnAndRiverProb });
+  } else if (street === 2) { // Turn
+    probabilities.push({ label: t.street_river, prob: riverProb });
+  }
+
+  return (
+    <div className="space-y-2">
+      {probabilities.map(({ label, prob }) => (
+        <div key={label} className="flex items-center gap-2 text-xs">
+          <span className="text-slate-400 w-24 text-right">{label}</span>
+          <div className="flex-1 bg-slate-900/50 rounded-full h-5 overflow-hidden border border-slate-700">
+            <div className="bg-gradient-to-r from-sky-500 to-indigo-500 h-full rounded-full flex items-center justify-end px-2 transition-all duration-500" style={{ width: `${Math.min(prob, 100)}%` }}>
+              <span className="text-white text-[10px] font-bold">{prob.toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const CardSelector = ({ selectingFor, onClose, onCardSelect, unavailableCards, deckCount, t }) => {
+  if (!selectingFor) return null;
+
+  let title = t.selectCard;
+  if (selectingFor.type === 'hero') title = `${t.selecting_hero} ${selectingFor.index + 1}/2`;
+  if (selectingFor.type === 'board') title = selectingFor.index < 3 ? `${t.selecting_flop} ${selectingFor.index + 1}/3` : selectingFor.index === 3 ? t.selecting_turn : t.selecting_river;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-800 p-4 rounded-xl max-w-lg w-full overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between mb-4 text-white font-bold">
+          <span>{title}</span>
+          <X onClick={onClose} className="cursor-pointer" />
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {SUITS.map(suit => (
+            <div key={suit} className="flex flex-col gap-2">
+              {RANKS.map(rank => {
+                const takenCount = unavailableCards.filter(c => c.rank === rank && c.suit === suit).length;
+                const isDisabled = takenCount >= deckCount;
+                return (
+                  <button key={rank + suit} disabled={isDisabled} onClick={() => onCardSelect({ rank, suit })} className={`p-1 rounded flex justify-center hover:bg-slate-700 ${isDisabled ? 'opacity-20 cursor-not-allowed' : ''}`}>
+                    <CardIcon rank={rank} suit={suit} />
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // --- 核心算法 ---
 const evaluateHand = (cards) => {
@@ -200,6 +305,40 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
   
   if (h1 >= 11) return "high_card_good";
   return "high_card_weak"; 
+};
+
+const PositionSelector = ({ show, onClose, onPositionSelect, currentPosition, POSITIONS, lang, t }) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between mb-4">
+          <h3 className="font-bold text-white flex items-center gap-2"><MapPin className="w-4 h-4" /> {t.select_position}</h3>
+          <button onClick={onClose}><X /></button>
+        </div>
+        <div className="space-y-3">
+          {['EP', 'MP', 'LP', 'BLINDS'].map(key => {
+            const data = POSITIONS[lang][key];
+            return (
+              <button
+                key={key}
+                onClick={() => onPositionSelect(key)}
+                className={`w-full text-left p-3 rounded-lg border transition ${currentPosition === key ? 'bg-blue-900/30 border-blue-500' : 'bg-slate-700/30 border-slate-700 hover:bg-slate-700'}`}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className={`font-bold text-sm ${currentPosition === key ? 'text-blue-300' : 'text-slate-200'}`}>{data.label}</span>
+                  {currentPosition === key && <CheckCircle className="w-3 h-3 text-blue-400" />}
+                </div>
+                <p className="text-[10px] text-slate-400 mb-1 leading-relaxed">{data.description}</p>
+                <p className="text-[10px] text-slate-500 italic">💡 {data.action_plan}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // --- 主程序 ---
