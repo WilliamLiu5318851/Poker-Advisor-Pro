@@ -854,6 +854,16 @@ function TexasHoldemAdvisor() {
     setPotSegments(segments); setSettlementMode(true);
   };
 
+  const handleFold = () => {
+    // 弃牌意味着输掉所有已投入的筹码
+    const totalLoss = heroTotalContributed + heroBet;
+    // 更新筹码，然后重置所有状态以开始新的一手牌
+    setHeroStack(Math.max(0, heroStack - totalLoss));
+    setHeroBet(0); setStreet(0); setMainPot(0); setHeroTotalContributed(0);
+    setPlayers(players.map(p => ({ ...p, bet: 0, totalContributed: 0, active: true })));
+    setHeroHand([null, null]); setCommunityCards([null, null, null, null, null]);
+    setResult(null); setSettlementMode(false); setPotSegments([]);
+  };
   const confirmSettlement = () => {
     let winnings = 0;
     potSegments.forEach(seg => { if (seg.result === 'win') winnings += seg.amount; else if (seg.result === 'split') winnings += Math.floor(seg.amount / seg.contestants); });
@@ -974,7 +984,7 @@ function TexasHoldemAdvisor() {
                       </div>
                   </div>
                   <div className="flex gap-2">
-                     <button onClick={() => setHeroBet(0)} className="flex-1 bg-slate-600 hover:bg-slate-500 py-2 rounded text-xs text-slate-200">{t.btn_fold}</button>
+                     <button onClick={handleFold} className="flex-1 bg-slate-600 hover:bg-slate-500 py-2 rounded text-xs text-slate-200">{t.btn_fold}</button>
                      <button onClick={() => handleHeroBetChange(Math.min(maxBet, heroStack))} className={`flex-1 py-2 rounded text-xs flex items-center justify-center gap-1 text-white ${isCallAllIn ? 'bg-red-800 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'}`}>
                         {isCallAction ? (isCallAllIn ? 'All-In' : `Call ${safeCallAmount}`) : 'Check'}
                      </button>
