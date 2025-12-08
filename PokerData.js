@@ -252,7 +252,7 @@ window.PokerData.TEXTURE_STRATEGIES = {
   zh: {
     TEX_PAIRED: { name: "公对面 (Paired)", desc: "警惕三条或葫芦，优先控池。" },
     TEX_MONOTONE: { name: "单色面 (Monotone)", desc: "极度危险！对手极可能有同花，除非你有坚果牌，否则谨慎。" },
-    TEX_TWO_TONE: { name: "听花面 (Two-Tone)", desc: "听牌很多，价值下注需加大尺度以保护手牌。" },
+    TEX_TWO_TONE: { name: "两色面 (Two-Tone)", desc: "牌面有同花听牌可能。保护你的成牌，并警惕对手的听牌。" },
     TEX_CONNECTED: { name: "连张面 (Connected)", desc: "顺子可能性大，你的顶对可能不再是强牌。" },
     TEX_RAINBOW_DRY: { name: "干燥面 (Dry)", desc: "牌面安全，成牌领先时应持续价值下注，也适合诈唬。" }
   },
