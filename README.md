@@ -7,7 +7,7 @@
 一款基于 GTO（最优游戏理论）的实时德州扑克辅助工具，旨在通过数据分析和蒙特卡洛模拟，为玩家提供科学的决策建议。
 
 <p align="center">
-  <img src="./image.png" alt="Poker Advisor Pro 宣传图" width="800"/>
+  <img src="./assets/image.png" alt="Poker Advisor Pro 宣传图" width="800"/>
 </p>
 
 
@@ -26,9 +26,9 @@
 ## 📸 界面截图 (Screenshots)
 
 <p align="center">
-  <img src="./assets/screenshot1.png" alt="应用截图1" width="48%">
+  <img src="./assets/Screenshot1.png" alt="应用截图1" width="48%">
   &nbsp;&nbsp;
-  <img src="./assets/screenshot2.png" alt="应用截图2" width="48%">
+  <img src="./assets/Screenshot2.png" alt="应用截图2" width="48%">
 </p>
 
 ## 🚀 技术栈
