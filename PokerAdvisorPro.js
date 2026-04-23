@@ -338,7 +338,7 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
           if (h1 >= 9) return "pre_strong_pair";   
           return "pre_small_pair";                 
       }
-      if (h1 >= 13 && h2 >= 12) return "pre_premium_high"; 
+      if (h1 === 14 && h2 >= 12) return "pre_premium_high";
       if (isSuited) {
           if (h1 === 14) return "pre_suited_ace";
           if ((h1 - h2 <= 2)) return "pre_suited_connector"; 

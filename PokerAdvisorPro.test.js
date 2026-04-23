@@ -104,7 +104,7 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
           if (h1 >= 9) return "pre_strong_pair";   
           return "pre_small_pair";                 
       }
-      if (h1 >= 13 && h2 >= 12) return "pre_premium_high"; 
+      if (h1 === 14 && h2 >= 12) return "pre_premium_high";
       if (isSuited) {
           if (h1 === 14) return "pre_suited_ace";
           if ((h1 - h2 <= 2)) return "pre_suited_connector"; 
@@ -254,11 +254,10 @@ describe('evaluateHand', () => {
     expect(evaluateHand(hand)).toBe(6000000 + 14 * 15 + 13);
   });
 
-  test('should prioritize flush over straight', () => {
-    // 7 cards: 4s 5s 6s 7s 8s 9d Tc (should be 8-high flush, not a straight)
+  test('should correctly identify straight flush over plain flush', () => {
+    // 4s 5s 6s 7s 8s 9d Tc — the spades form an 8-high straight flush
     const hand = createHand(['4', '5', '6', '7', '8', '9', 'T'], ['s', 's', 's', 's', 's', 'd', 'c']);
-    const expectedScore = 5000000 + 8*15**4 + 7*15**3 + 6*15**2 + 5*15 + 4;
-    expect(evaluateHand(hand)).toBe(expectedScore);
+    expect(evaluateHand(hand)).toBe(8000000 + 8); // 8-high straight flush
   });
 
   test('should correctly evaluate One Pair with kickers', () => {
