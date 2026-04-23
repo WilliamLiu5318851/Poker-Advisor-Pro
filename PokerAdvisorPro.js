@@ -570,10 +570,12 @@ function TexasHoldemAdvisor() {
   
   const [result, setResult] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [selectingFor, setSelectingFor] = useState(null); 
+  const [selectingFor, setSelectingFor] = useState(null);
   const [settlementMode, setSettlementMode] = useState(false);
   const [potSegments, setPotSegments] = useState([]);
   const [equityTrendData, setEquityTrendData] = useState(null); // 新增状态变量
+  const [showDetails, setShowDetails] = useState(false);
+  const [cardSelectorSuit, setCardSelectorSuit] = useState(null);
 
   const currentOpponentBets = players.reduce((sum, p) => sum + p.bet, 0); 
   const totalPot = mainPot + currentOpponentBets + heroBet;
@@ -747,6 +749,7 @@ function TexasHoldemAdvisor() {
     setResult(null);
 
     setEquityTrendData(null); // 清除之前的趋势数据
+    setShowDetails(false);
 
     // 使用setTimeout来确保UI更新（加载状态），然后执行计算
     await new Promise(resolve => setTimeout(resolve, 50));
@@ -840,7 +843,9 @@ function TexasHoldemAdvisor() {
 
       setResult({
         equity: equity.toFixed(1),
+        adviceKey,
         advice: t[adviceKey] || "Advice N/A",
+        plainReason: t[reasonKey + '_plain'] || t[reasonKey] || '',
         reason: finalReason,
         handTypeLabel: analysisData?.label,
         textureLabel: textureStrategy?.name,
