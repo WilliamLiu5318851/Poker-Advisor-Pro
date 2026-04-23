@@ -362,3 +362,48 @@ describe('analyzeHandFeatures', () => {
     });
   });
 });
+
+// 复制函数到测试文件（遵循本项目的测试约定）
+const getAdviceStyle = (adviceKey) => {
+  if (adviceKey === 'advice_fold')
+    return { bg: 'bg-red-950', border: 'border-red-700', text: 'text-red-300', bar: 'bg-red-500' };
+  if (['advice_raise', 'advice_allin', 'advice_raise_bluff', 'advice_allin_bluff'].includes(adviceKey))
+    return { bg: 'bg-emerald-950', border: 'border-emerald-700', text: 'text-emerald-300', bar: 'bg-emerald-500' };
+  return { bg: 'bg-amber-950', border: 'border-amber-700', text: 'text-amber-300', bar: 'bg-amber-500' };
+};
+
+describe('getAdviceStyle', () => {
+  test('fold returns red style', () => {
+    const s = getAdviceStyle('advice_fold');
+    expect(s.bg).toBe('bg-red-950');
+    expect(s.bar).toBe('bg-red-500');
+  });
+
+  test('raise returns green style', () => {
+    const s = getAdviceStyle('advice_raise');
+    expect(s.bg).toBe('bg-emerald-950');
+    expect(s.bar).toBe('bg-emerald-500');
+  });
+
+  test('allin returns green style', () => {
+    expect(getAdviceStyle('advice_allin').bg).toBe('bg-emerald-950');
+  });
+
+  test('raise_bluff returns green style', () => {
+    expect(getAdviceStyle('advice_raise_bluff').bg).toBe('bg-emerald-950');
+  });
+
+  test('call returns amber style', () => {
+    const s = getAdviceStyle('advice_call');
+    expect(s.bg).toBe('bg-amber-950');
+    expect(s.bar).toBe('bg-amber-500');
+  });
+
+  test('check_call returns amber style', () => {
+    expect(getAdviceStyle('advice_check_call').bg).toBe('bg-amber-950');
+  });
+
+  test('unknown key returns amber style as default', () => {
+    expect(getAdviceStyle('advice_unknown').bg).toBe('bg-amber-950');
+  });
+});

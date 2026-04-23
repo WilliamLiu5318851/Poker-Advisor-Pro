@@ -533,6 +533,15 @@ const parseRangeString = (rangeStr) => {
 };
 
 
+// 根据建议键返回对应的 Tailwind 颜色样式
+const getAdviceStyle = (adviceKey) => {
+  if (adviceKey === 'advice_fold')
+    return { bg: 'bg-red-950', border: 'border-red-700', text: 'text-red-300', bar: 'bg-red-500' };
+  if (['advice_raise', 'advice_allin', 'advice_raise_bluff', 'advice_allin_bluff'].includes(adviceKey))
+    return { bg: 'bg-emerald-950', border: 'border-emerald-700', text: 'text-emerald-300', bar: 'bg-emerald-500' };
+  return { bg: 'bg-amber-950', border: 'border-amber-700', text: 'text-amber-300', bar: 'bg-amber-500' };
+};
+
 // --- 主程序 ---
 function TexasHoldemAdvisor() {
   const [lang, setLang] = useState('zh');
