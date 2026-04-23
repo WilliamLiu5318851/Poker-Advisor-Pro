@@ -1078,67 +1078,92 @@ function TexasHoldemAdvisor() {
             </div>
          )}
 
-         {result && !settlementMode && (
-          <div className={`border rounded-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 ${result.isBluff ? 'bg-purple-900/20 border-purple-500/50' : 'bg-slate-900 border-slate-700'}`}>
-             <div className="p-4 bg-slate-800/50 border-b border-slate-800 flex justify-between items-center">
-                <div>
-                   <h2 className={`text-2xl font-bold ${result.isBluff ? 'text-purple-400 animate-pulse' : result.advice?.includes('Fold') ? 'text-red-400' : 'text-emerald-400'}`}>{result.advice}</h2>
-                   <div className="mt-1 flex flex-wrap gap-1">
-                      {result.handTypeLabel && <span className="text-xs bg-slate-700 px-2 py-0.5 rounded text-blue-200 border border-blue-500/30 flex items-center gap-1"><Lightbulb className="w-3 h-3"/> {result.handTypeLabel}</span>}
-                      {result.textureLabel && (
-                        <span className={`text-xs px-2 py-0.5 rounded border flex items-center gap-1 ${result.textureType==='wet' ? 'bg-amber-900/30 text-amber-200 border-amber-600/50' : 'bg-slate-700 text-indigo-200 border-indigo-500/30'}`}>
-                           <Grid className="w-3 h-3"/> {result.textureLabel} {result.textureType==='wet'?'(Wet)':'(Dry)'}
-                        </span>
-                      )}
-                      {heroPosition && <span className="text-xs bg-slate-700 px-2 py-0.5 rounded text-slate-300 border border-slate-600 flex items-center gap-1"><MapPin className="w-3 h-3"/> {heroPosition}</span>}
+         {result && !settlementMode && (() => {
+           const style = getAdviceStyle(result.adviceKey);
+           return (
+             <div className={`border-2 rounded-xl overflow-hidden ${style.border} ${style.bg}`}>
+               {/* 交通灯决策头 */}
+               <div className="p-4 text-center border-b border-slate-800/50">
+                 <h2 className={`text-2xl font-bold ${style.text}`}>{result.advice}</h2>
+                 <p className="text-sm mt-1 text-slate-300 leading-relaxed">{result.plainReason}</p>
+               </div>
+
+               {/* 胜率进度条 */}
+               <div className="px-4 pt-3 pb-2">
+                 <div className="flex justify-between text-xs text-slate-500 mb-1">
+                   <span>{t.equity}</span>
+                   <span className="font-mono font-bold text-white">{result.equity}%</span>
+                 </div>
+                 <div className="w-full bg-slate-800 rounded-full h-2.5">
+                   <div className={`h-2.5 rounded-full transition-all duration-500 ${style.bar}`} style={{ width: `${Math.min(result.equity, 100)}%` }} />
+                 </div>
+               </div>
+
+               {/* 标签行 */}
+               <div className="px-4 pb-3 flex flex-wrap gap-1">
+                 {result.handTypeLabel && (
+                   <span className="text-xs bg-slate-800 px-2 py-0.5 rounded text-blue-200 border border-blue-500/30 flex items-center gap-1">
+                     <Lightbulb className="w-3 h-3"/> {result.handTypeLabel}
+                   </span>
+                 )}
+                 {result.textureLabel && (
+                   <span className={`text-xs px-2 py-0.5 rounded border flex items-center gap-1 ${result.textureType==='wet' ? 'bg-amber-900/30 text-amber-200 border-amber-600/50' : 'bg-slate-800 text-indigo-200 border-indigo-500/30'}`}>
+                     <Grid className="w-3 h-3"/> {result.textureLabel} {result.textureType==='wet'?'(Wet)':'(Dry)'}
+                   </span>
+                 )}
+                 {heroPosition && (
+                   <span className="text-xs bg-slate-800 px-2 py-0.5 rounded text-slate-300 border border-slate-600 flex items-center gap-1">
+                     <MapPin className="w-3 h-3"/> {heroPosition}
+                   </span>
+                 )}
+               </div>
+
+               {/* 下注建议（推荐项高亮） */}
+               {result.betSizes && (
+                 <div className="px-4 pb-4">
+                   <div className="text-xs text-slate-500 mb-2 flex items-center gap-1"><MousePointerClick className="w-3 h-3"/> {t.betSizing}</div>
+                   <div className="grid grid-cols-3 gap-2">
+                     <button onClick={() => setHeroBet(result.betSizes.smart)} className="flex flex-col items-center p-2 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700 transition">
+                       <div className="text-[10px] text-slate-500 mb-1 uppercase tracking-wider">{t.bet_size_small}</div>
+                       <div className="font-mono font-bold text-slate-300">{result.betSizes.smart}</div>
+                     </button>
+                     <button onClick={() => setHeroBet(result.betSizes.value)} className={`flex flex-col items-center p-2 rounded border-2 ${style.border} ${style.bg} hover:brightness-110 transition`}>
+                       <div className={`text-[10px] mb-1 font-bold ${style.text}`}>★ {t.bet_size_med}</div>
+                       <div className="font-mono font-bold text-white text-base">{result.betSizes.value}</div>
+                     </button>
+                     <button onClick={() => setHeroBet(result.betSizes.pot)} className="flex flex-col items-center p-2 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700 transition">
+                       <div className="text-[10px] text-slate-500 mb-1 uppercase tracking-wider">{t.bet_size_large}</div>
+                       <div className="font-mono font-bold text-slate-300">{result.betSizes.pot}</div>
+                     </button>
                    </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-white">{result.equity}%</div>
-                  <div className="text-xs text-slate-500">{t.equity}</div>
-                </div>
-             </div>
-             
-             <div className="p-4 space-y-3">
-               <p className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed font-mono">{result.reason}</p>
-               
-               {result.drawStats && (
-                 // 听牌数学
-                 // ... (保持不变)
-                 <div className="bg-slate-800 p-2 rounded border border-slate-700 flex items-center gap-3">
-                    <div className="bg-indigo-900/50 p-2 rounded text-indigo-300"><Calculator className="w-5 h-5"/></div>
-                    <div>
-                       <div className="text-sm font-bold text-indigo-200">{result.drawStats.label} ({result.drawStats.outs} Outs)</div>
-                    </div>
                  </div>
                )}
 
-               {/* 胜率趋势图 */}
-               {equityTrendData && <EquityTrendChart data={equityTrendData} t={t} />}
-               {result.drawStats && <DrawProbabilityChart outs={result.drawStats.outs} street={street} t={t} />}
-               
-               {result.betSizes && (
-                 <div>
-                   <div className="text-xs text-slate-500 mb-2 flex items-center gap-1"><MousePointerClick className="w-3 h-3"/> {t.betSizing}</div>
-                   <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-800/50">
-                      <button onClick={() => setHeroBet(result.betSizes.smart)} className="flex flex-col items-center p-2 rounded bg-emerald-900/20 border border-emerald-500/30 hover:bg-emerald-900/40 transition">
-                        <div className="text-[10px] text-emerald-400 mb-1 uppercase tracking-wider flex items-center gap-1"><Zap className="w-3 h-3"/> {t.bet_size_small}</div>
-                        <div className="font-mono font-bold text-emerald-300">{result.betSizes.smart}</div>
-                      </button>
-                      <button onClick={() => setHeroBet(result.betSizes.value)} className="flex flex-col items-center p-2 rounded hover:bg-slate-800 border border-transparent hover:border-slate-700">
-                        <div className="text-[10px] text-slate-500 mb-1">{t.bet_size_med}</div>
-                        <div className="font-mono font-bold text-blue-300">{result.betSizes.value}</div>
-                      </button>
-                      <button onClick={() => setHeroBet(result.betSizes.pot)} className="flex flex-col items-center p-2 rounded hover:bg-slate-800 border border-transparent hover:border-slate-700">
-                        <div className="text-[10px] text-slate-500 mb-1">{t.bet_size_large}</div>
-                        <div className="font-mono font-bold text-blue-300">{result.betSizes.pot}</div>
-                      </button>
+               {/* 折叠详情 */}
+               <div className="border-t border-slate-800">
+                 <button onClick={() => setShowDetails(d => !d)} className="w-full px-4 py-2.5 text-left flex justify-between items-center text-xs text-slate-500 hover:bg-slate-800/50 transition">
+                   <span>📊 {showDetails ? (lang==='zh'?'收起详情':'Hide Details') : (lang==='zh'?'查看分析详情':'Show Analysis')}</span>
+                   <span>{showDetails ? '▲' : '▼'}</span>
+                 </button>
+                 {showDetails && (
+                   <div className="p-4 pt-0 space-y-3">
+                     <p className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed font-mono">{result.reason}</p>
+                     {result.drawStats && (
+                       <div className="bg-slate-800 p-2 rounded border border-slate-700 flex items-center gap-3">
+                         <div className="bg-indigo-900/50 p-2 rounded text-indigo-300"><Calculator className="w-5 h-5"/></div>
+                         <div>
+                           <div className="text-sm font-bold text-indigo-200">{result.drawStats.label} ({result.drawStats.outs} Outs)</div>
+                         </div>
+                       </div>
+                     )}
+                     {equityTrendData && <EquityTrendChart data={equityTrendData} t={t} />}
+                     {result.drawStats && <DrawProbabilityChart outs={result.drawStats.outs} street={street} t={t} />}
                    </div>
-                 </div>
-               )}
+                 )}
+               </div>
              </div>
-          </div>
-        )}
+           );
+         })()}
       </div>
 
       <CardSelector 
