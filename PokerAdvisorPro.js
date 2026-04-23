@@ -1030,6 +1030,25 @@ function TexasHoldemAdvisor() {
                      </button>
                      <button onClick={() => setHeroBet(heroStack)} className="flex-1 bg-red-600 hover:bg-red-500 py-2 rounded text-xs text-white">All-In</button>
                   </div>
+               {totalPot > 0 && (
+                 <div className="flex gap-1.5">
+                   {[
+                     { label: '1/3', value: Math.round(totalPot / 3) },
+                     { label: '1/2', value: Math.round(totalPot / 2) },
+                     { label: lang==='zh'?'底池':'Pot', value: totalPot },
+                     { label: 'All-In', value: heroStack, isAllIn: true },
+                   ].map(({ label, value, isAllIn }) => (
+                     <button
+                       key={label}
+                       onClick={() => handleHeroBetChange(value)}
+                       className={`flex-1 py-1.5 rounded text-xs font-mono font-bold transition ${isAllIn ? 'bg-red-900/60 text-red-300 border border-red-700 hover:bg-red-800/60' : 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600'}`}
+                     >
+                       <div className="text-[9px] opacity-70">{label}</div>
+                       <div>{value}</div>
+                     </button>
+                   ))}
+                 </div>
+               )}
                   <input type="number" value={heroBet===0?'':heroBet} onChange={e => handleHeroBetChange(e.target.value)} placeholder={t.bet_placeholder} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-right font-mono"/>
                </div>
             </div>
