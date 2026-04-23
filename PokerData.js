@@ -348,7 +348,9 @@ window.PokerData.TEXTS = {
     reason_value_plain: '你的牌很强，趁对手还会跟注时多赚一些',
     reason_bluff_semi_plain: '你有机会击中更强的牌，主动进攻可以多一种赢钱方式',
     reason_bluff_pure_plain: '对手可能也没什么好牌，现在加注有机会让他们直接弃牌',
-    reason_odds_plain: '跟注在数学上是合算的，或者先看看情况再说'
+    reason_odds_plain: '跟注在数学上是合算的，或者先看看情况再说',
+    show_details: '查看分析详情',
+    hide_details: '收起详情'
   },
   en: {
     appTitle: 'Poker Advisor Pro',
@@ -430,6 +432,8 @@ window.PokerData.TEXTS = {
     reason_value_plain: 'Your hand is strong. Bet now while opponents will still call',
     reason_bluff_semi_plain: 'You can hit a stronger hand. Betting gives you two ways to win',
     reason_bluff_pure_plain: 'Opponent may be weak. A raise here might take the pot without a showdown',
-    reason_odds_plain: 'Pot odds make calling profitable, or check and wait for more information'
+    reason_odds_plain: 'Pot odds make calling profitable, or check and wait for more information',
+    show_details: 'Show Analysis',
+    hide_details: 'Hide Details'
   }
 };

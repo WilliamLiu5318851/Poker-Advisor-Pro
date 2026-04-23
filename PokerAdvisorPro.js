@@ -1095,7 +1095,7 @@ function TexasHoldemAdvisor() {
                    <span className="font-mono font-bold text-white">{result.equity}%</span>
                  </div>
                  <div className="w-full bg-slate-800 rounded-full h-2.5">
-                   <div className={`h-2.5 rounded-full transition-all duration-500 ${style.bar}`} style={{ width: `${Math.min(result.equity, 100)}%` }} />
+                   <div className={`h-2.5 rounded-full transition-all duration-500 ${style.bar}`} style={{ width: `${Math.min(Number(result.equity), 100)}%` }} />
                  </div>
                </div>
 
@@ -1108,7 +1108,7 @@ function TexasHoldemAdvisor() {
                  )}
                  {result.textureLabel && (
                    <span className={`text-xs px-2 py-0.5 rounded border flex items-center gap-1 ${result.textureType==='wet' ? 'bg-amber-900/30 text-amber-200 border-amber-600/50' : 'bg-slate-800 text-indigo-200 border-indigo-500/30'}`}>
-                     <Grid className="w-3 h-3"/> {result.textureLabel} {result.textureType==='wet'?'(Wet)':'(Dry)'}
+                     <Grid className="w-3 h-3"/> {result.textureLabel} {lang==='zh' ? (result.textureType==='wet' ? '(潮湿)' : '(干燥)') : (result.textureType==='wet' ? '(Wet)' : '(Dry)')}
                    </span>
                  )}
                  {heroPosition && (
@@ -1142,7 +1142,7 @@ function TexasHoldemAdvisor() {
                {/* 折叠详情 */}
                <div className="border-t border-slate-800">
                  <button onClick={() => setShowDetails(d => !d)} className="w-full px-4 py-2.5 text-left flex justify-between items-center text-xs text-slate-500 hover:bg-slate-800/50 transition">
-                   <span>📊 {showDetails ? (lang==='zh'?'收起详情':'Hide Details') : (lang==='zh'?'查看分析详情':'Show Analysis')}</span>
+                   <span>📊 {showDetails ? t.hide_details : t.show_details}</span>
                    <span>{showDetails ? '▲' : '▼'}</span>
                  </button>
                  {showDetails && (
