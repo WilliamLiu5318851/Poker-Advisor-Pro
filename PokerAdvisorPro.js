@@ -571,6 +571,21 @@ const getAdviceStyle = (adviceKey) => {
   return { bg: 'bg-amber-950', border: 'border-amber-700', text: 'text-amber-300', bar: 'bg-amber-500' };
 };
 
+function computePots(contributions) {
+  const result = [];
+  let remaining = contributions.map(c => ({ ...c }));
+  let potIndex = 0;
+  while (remaining.some(c => c.amount > 0)) {
+    const minAmount = Math.min(...remaining.filter(c => c.amount > 0).map(c => c.amount));
+    const potAmount = remaining.reduce((sum, c) => sum + Math.min(c.amount, minAmount), 0);
+    const eligible = remaining.filter(c => c.amount >= minAmount && c.eligible).map(c => c.id);
+    result.push({ amount: potAmount, eligible, label: potIndex === 0 ? '主池' : `边池 ${potIndex}` });
+    remaining = remaining.map(c => ({ ...c, amount: Math.max(0, c.amount - minAmount) }));
+    potIndex++;
+  }
+  return result;
+}
+
 // --- 主程序 ---
 function TexasHoldemAdvisor() {
   const [lang, setLang] = useState('zh');

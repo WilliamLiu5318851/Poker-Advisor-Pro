@@ -406,3 +406,72 @@ describe('getAdviceStyle', () => {
     expect(getAdviceStyle('advice_unknown').bg).toBe('bg-amber-950');
   });
 });
+
+// ─── computePots ───────────────────────────────────────────────────────────
+function computePots(contributions) {
+  const result = [];
+  let remaining = contributions.map(c => ({ ...c }));
+  let potIndex = 0;
+  while (remaining.some(c => c.amount > 0)) {
+    const minAmount = Math.min(...remaining.filter(c => c.amount > 0).map(c => c.amount));
+    const potAmount = remaining.reduce((sum, c) => sum + Math.min(c.amount, minAmount), 0);
+    const eligible = remaining.filter(c => c.amount >= minAmount && c.eligible).map(c => c.id);
+    result.push({ amount: potAmount, eligible, label: potIndex === 0 ? '主池' : `边池 ${potIndex}` });
+    remaining = remaining.map(c => ({ ...c, amount: Math.max(0, c.amount - minAmount) }));
+    potIndex++;
+  }
+  return result;
+}
+
+describe('computePots', () => {
+  test('equal contributions → single main pot', () => {
+    const pots = computePots([
+      { id: 'hero', amount: 100, eligible: true },
+      { id: 'opp1', amount: 100, eligible: true },
+    ]);
+    expect(pots).toHaveLength(1);
+    expect(pots[0]).toEqual({ amount: 200, eligible: ['hero', 'opp1'], label: '主池' });
+  });
+
+  test('hero all-in at 200, opponent at 500 → main pot + side pot', () => {
+    const pots = computePots([
+      { id: 'hero', amount: 200, eligible: true },
+      { id: 'opp1', amount: 500, eligible: true },
+    ]);
+    expect(pots).toHaveLength(2);
+    expect(pots[0]).toEqual({ amount: 400, eligible: ['hero', 'opp1'], label: '主池' });
+    expect(pots[1]).toEqual({ amount: 300, eligible: ['opp1'], label: '边池 1' });
+  });
+
+  test('three players at different stack sizes → two side pots', () => {
+    const pots = computePots([
+      { id: 'hero', amount: 100, eligible: true },
+      { id: 'opp1', amount: 200, eligible: true },
+      { id: 'opp2', amount: 400, eligible: true },
+    ]);
+    expect(pots).toHaveLength(3);
+    expect(pots[0]).toEqual({ amount: 300, eligible: ['hero', 'opp1', 'opp2'], label: '主池' });
+    expect(pots[1]).toEqual({ amount: 200, eligible: ['opp1', 'opp2'], label: '边池 1' });
+    expect(pots[2]).toEqual({ amount: 200, eligible: ['opp2'], label: '边池 2' });
+  });
+
+  test('folded player chips stay in pot but not eligible', () => {
+    const pots = computePots([
+      { id: 'hero', amount: 100, eligible: true },
+      { id: 'opp1', amount: 200, eligible: true },
+      { id: 'opp2', amount: 100, eligible: false }, // folded
+    ]);
+    expect(pots).toHaveLength(2);
+    expect(pots[0].amount).toBe(300); // 100×3
+    expect(pots[0].eligible).toEqual(['hero', 'opp1']); // opp2 not eligible
+    expect(pots[1].amount).toBe(100); // opp1's extra
+    expect(pots[1].eligible).toEqual(['opp1']);
+  });
+
+  test('empty contributions → empty result', () => {
+    expect(computePots([])).toEqual([]);
+    expect(computePots([
+      { id: 'hero', amount: 0, eligible: true },
+    ])).toEqual([]);
+  });
+});
