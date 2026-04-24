@@ -1,0 +1,103 @@
+<h2>设计第二部分：快速输入系统</h2>
+<p class="subtitle">三个改造点 — 看完在终端告诉我哪些要、哪些不要</p>
+
+<!-- 改造点 1 -->
+<div class="section">
+  <h3>① 选牌：全屏弹窗 → 底部抽屉</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">现在：全屏弹窗</div>
+      <div class="mockup-body" style="font-size:11px;color:#94a3b8">
+        <div style="background:#000;opacity:0.8;padding:4px;border-radius:4px;margin-bottom:4px;font-size:10px;color:#64748b;text-align:center">黑色遮罩盖住整个屏幕</div>
+        <div style="background:#1e293b;padding:8px;border-radius:4px;font-size:10px;color:#94a3b8">
+          <div style="margin-bottom:4px;font-weight:bold">选牌（13×4 网格）</div>
+          <div style="display:grid;grid-template-columns:repeat(13,1fr);gap:1px;font-size:8px;text-align:center">
+            <span>A♠</span><span>K♠</span><span>Q♠</span><span>J♠</span><span>T♠</span><span>9♠</span><span>8♠</span><span>7♠</span><span>6♠</span><span>5♠</span><span>4♠</span><span>3♠</span><span>2♠</span>
+            <span style="color:#ef4444">A♥</span><span style="color:#ef4444">K♥</span><span style="color:#ef4444">Q♥</span><span style="color:#ef4444">J♥</span><span style="color:#ef4444">T♥</span><span style="color:#ef4444">9♥</span><span style="color:#ef4444">8♥</span><span style="color:#ef4444">7♥</span><span style="color:#ef4444">6♥</span><span style="color:#ef4444">5♥</span><span style="color:#ef4444">4♥</span><span style="color:#ef4444">3♥</span><span style="color:#ef4444">2♥</span>
+          </div>
+          <div style="margin-top:4px;font-size:9px;color:#64748b">需要滚动才能看全所有牌...</div>
+        </div>
+        <div style="color:#ef4444;font-size:10px;margin-top:4px">⚠ 遮住整个界面，失去牌桌上下文</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">建议：底部抽屉（半屏）</div>
+      <div class="mockup-body" style="font-size:11px;color:#94a3b8">
+        <div style="background:#1e293b;padding:6px;border-radius:4px;margin-bottom:2px;font-size:10px;color:#64748b;opacity:0.5">上半屏：游戏界面仍然可见</div>
+        <div style="background:#1e293b;padding:8px;border-radius:4px;border-top:2px solid #6366f1">
+          <div style="font-size:10px;color:#a5b4fc;margin-bottom:6px;font-weight:bold">选你的手牌 1/2 ─────────── ✕</div>
+          <div style="display:flex;gap:4px;margin-bottom:6px">
+            <div style="flex:1;background:#0f172a;padding:3px;border-radius:3px;text-align:center;font-size:10px;color:#64748b;border:1px solid #334155">♠ 黑桃</div>
+            <div style="flex:1;background:#1e293b;padding:3px;border-radius:3px;text-align:center;font-size:10px;color:#f87171;border:1px solid #6366f1">♥ 红桃</div>
+            <div style="flex:1;background:#0f172a;padding:3px;border-radius:3px;text-align:center;font-size:10px;color:#64748b;border:1px solid #334155">♣ 梅花</div>
+            <div style="flex:1;background:#0f172a;padding:3px;border-radius:3px;text-align:center;font-size:10px;color:#64748b;border:1px solid #334155">♦ 方块</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(13,1fr);gap:2px;font-size:9px;text-align:center">
+            <span style="background:#ef444420;padding:2px;border-radius:2px;color:#f87171">A</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">K</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">Q</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">J</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">T</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">9</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">8</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">7</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">6</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">5</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">4</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">3</span>
+            <span style="background:#1e293b;padding:2px;border-radius:2px">2</span>
+          </div>
+        </div>
+        <div style="color:#22c55e;font-size:10px;margin-top:4px">✓ 花色先选，点数再选，两步完成；上半屏仍可见</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 改造点 2 -->
+<div class="section">
+  <h3>② Hero 下注：手动输入 → 快捷按钮 + 输入框</h3>
+  <div class="mockup">
+    <div class="mockup-header">建议：快捷按钮排（底池 = $120 时的示例）</div>
+    <div class="mockup-body" style="font-size:11px;color:#94a3b8">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:10px;color:#64748b">我的下注：</span>
+        <div style="display:flex;gap:4px">
+          <button style="background:#1e3a5f;color:#93c5fd;border:1px solid #3b82f6;padding:4px 8px;border-radius:4px;font-size:10px;cursor:default">$40 <span style="font-size:9px;color:#60a5fa">1/3池</span></button>
+          <button style="background:#1e3a5f;color:#93c5fd;border:1px solid #3b82f6;padding:4px 8px;border-radius:4px;font-size:10px;cursor:default">$60 <span style="font-size:9px;color:#60a5fa">1/2池</span></button>
+          <button style="background:#1e3a5f;color:#93c5fd;border:1px solid #3b82f6;padding:4px 8px;border-radius:4px;font-size:10px;cursor:default">$120 <span style="font-size:9px;color:#60a5fa">底池</span></button>
+          <button style="background:#7f1d1d;color:#fca5a5;border:1px solid #ef4444;padding:4px 8px;border-radius:4px;font-size:10px;cursor:default">All-In</button>
+        </div>
+        <span style="color:#64748b;font-size:10px">或</span>
+        <input style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:11px;width:70px" placeholder="自定义" />
+      </div>
+      <div style="margin-top:6px;font-size:10px;color:#22c55e">✓ 一次点击完成，数字自动按当前底池计算</div>
+    </div>
+  </div>
+</div>
+
+<!-- 改造点 3 -->
+<div class="section">
+  <h3>③ 对手下注：逐个手动输入 → 行内快捷操作</h3>
+  <div class="mockup">
+    <div class="mockup-header">建议：每个对手一行，三个快捷动作</div>
+    <div class="mockup-body" style="font-size:11px;color:#94a3b8">
+      <div style="space-y:4px">
+        <div style="display:flex;align-items:center;gap:6px;background:#1e293b;padding:6px;border-radius:6px;margin-bottom:4px">
+          <span style="color:#64748b;font-size:10px;width:40px">对手 1</span>
+          <button style="background:#64748b30;color:#94a3b8;border:1px solid #475569;padding:3px 8px;border-radius:4px;font-size:10px;cursor:default">弃牌</button>
+          <button style="background:#1e3a5f;color:#93c5fd;border:1px solid #3b82f6;padding:3px 8px;border-radius:4px;font-size:10px;cursor:default">跟注 $60</button>
+          <input style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:3px 6px;border-radius:4px;font-size:10px;width:60px" placeholder="加注金额" />
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:#1e293b;padding:6px;border-radius:6px">
+          <span style="color:#64748b;font-size:10px;width:40px">对手 2</span>
+          <button style="background:#1a2e22;color:#86efac;border:1px solid #22c55e;padding:3px 8px;border-radius:4px;font-size:10px;cursor:default">✓ 已弃牌</button>
+          <span style="font-size:10px;color:#475569">（筹码已计入底池）</span>
+        </div>
+      </div>
+      <div style="margin-top:6px;font-size:10px;color:#22c55e">✓ 弃牌/跟注一键，仅加注时才需要输入数字</div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:1rem">这三个输入改造方向 OK 吗？有没有要调整的？在终端告诉我</p>

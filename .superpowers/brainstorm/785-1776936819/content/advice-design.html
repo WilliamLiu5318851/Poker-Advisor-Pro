@@ -1,0 +1,105 @@
+<h2>设计第三部分：建议面板重设计</h2>
+<p class="subtitle">现在 vs 建议新方案 — 面向新手的"一眼看懂"原则</p>
+
+<div class="split">
+  <!-- 现在 -->
+  <div class="mockup">
+    <div class="mockup-header">❌ 现在的建议面板</div>
+    <div class="mockup-body" style="font-size:11px;color:#94a3b8">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <div style="color:#34d399;font-size:16px;font-weight:bold">Raise</div>
+          <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
+            <span style="background:#1e293b;color:#93c5fd;padding:2px 6px;border-radius:10px;font-size:9px;border:1px solid #3b82f620">💡 顶对含听牌</span>
+            <span style="background:#451a03;color:#fbbf24;padding:2px 6px;border-radius:10px;font-size:9px;border:1px solid #d9770620">⬛ 两色面 (Wet)</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:bold;color:#fff">67.3%</div>
+          <div style="font-size:9px;color:#64748b">Equity</div>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:6px;border-radius:4px;font-family:monospace;font-size:9px;color:#64748b;line-height:1.6;margin-bottom:6px">
+        Pot Odds: 28.6%<br/>
+        [后位 (LP/BTN)]: 积极偷盲，利用位置施压<br/>
+        ✅ 在推荐开池范围内<br/><br/>
+        🎲 顺子听牌(OESD): 8 Outs (~32%)
+      </div>
+      <div style="font-size:9px;color:#64748b;margin-bottom:6px">点击应用下注尺度：</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
+        <div style="background:#064e3b20;border:1px solid #10b98130;padding:4px;border-radius:4px;text-align:center;font-size:10px">
+          <div style="color:#34d399;font-size:9px">⚡ 保守</div>
+          <div style="color:#6ee7b7;font-weight:bold">$48</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;padding:4px;border-radius:4px;text-align:center;font-size:10px">
+          <div style="color:#64748b;font-size:9px">标准</div>
+          <div style="color:#93c5fd;font-weight:bold">$72</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;padding:4px;border-radius:4px;text-align:center;font-size:10px">
+          <div style="color:#64748b;font-size:9px">大注</div>
+          <div style="color:#93c5fd;font-weight:bold">$96</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;color:#ef4444;font-size:9px">⚠ Equity/Pot Odds/Outs 对新手是陌生词 · 理由是代码式 mono 字体 · 建议数字要计算才能理解</div>
+    </div>
+  </div>
+
+  <!-- 建议新方案 -->
+  <div class="mockup">
+    <div class="mockup-header">✅ 建议新方案：新手友好</div>
+    <div class="mockup-body" style="font-size:11px;color:#94a3b8">
+
+      <!-- 交通灯决策卡 -->
+      <div style="background:#064e3b;border:2px solid #10b981;border-radius:8px;padding:10px;margin-bottom:8px;text-align:center">
+        <div style="font-size:20px;font-weight:bold;color:#6ee7b7;margin-bottom:2px">✅ 建议加注</div>
+        <div style="font-size:12px;color:#a7f3d0;margin-bottom:6px">你的牌很强，现在是从对手那里多赚钱的好时机</div>
+
+        <!-- 下注快捷选 -->
+        <div style="display:flex;justify-content:center;gap:6px;margin-bottom:6px">
+          <button style="background:#065f46;color:#6ee7b7;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:bold;cursor:default">$48 小注</button>
+          <button style="background:#047857;color:#ecfdf5;border:2px solid #10b981;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:bold;cursor:default">$72 推荐 ★</button>
+          <button style="background:#065f46;color:#6ee7b7;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:bold;cursor:default">$96 大注</button>
+        </div>
+
+        <!-- 胜率可视化 -->
+        <div style="background:#0f172a;border-radius:6px;padding:6px">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#6ee7b7;margin-bottom:3px">
+            <span>你的胜率</span><span>67%</span>
+          </div>
+          <div style="background:#1e293b;border-radius:4px;height:8px;overflow:hidden">
+            <div style="background:linear-gradient(90deg,#10b981,#34d399);width:67%;height:100%;border-radius:4px"></div>
+          </div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px">对手需要 29% 才值得跟注</div>
+        </div>
+      </div>
+
+      <!-- 可展开详情 -->
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <span style="font-size:10px;color:#94a3b8">📊 查看分析详情</span>
+          <span style="font-size:10px;color:#64748b">▼ 展开</span>
+        </div>
+        <div style="margin-top:6px;border-top:1px solid #334155;padding-top:6px;font-size:9px;color:#64748b;line-height:1.6">
+          <div>牌型：顶对含顺子听牌 &nbsp;|&nbsp; 牌面：两色（潮湿）</div>
+          <div>位置：后位 · GTO胜率要求：29%</div>
+          <div>听牌补牌：8张 · 转牌或河牌击中概率约 32%</div>
+        </div>
+      </div>
+
+      <div style="color:#22c55e;font-size:9px;margin-top:6px">✓ 决策一眼明确 · 白话理由 · 推荐金额高亮 · 进阶信息可展开</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:1.5rem">
+  <h3>建议面板改造要点</h3>
+  <ul style="color:#94a3b8;font-size:13px;line-height:2.2">
+    <li><strong style="color:#6ee7b7">交通灯颜色系统</strong>：绿=加注/下注、黄=跟注/过牌、红=弃牌，颜色即决策</li>
+    <li><strong style="color:#e2e8f0">白话理由</strong>：去掉 Equity/Pot Odds/GTO 等术语，换成玩家能直接理解的语言</li>
+    <li><strong style="color:#e2e8f0">推荐金额高亮</strong>：三个下注选项中，推荐的那个用更大/更亮的样式突出显示</li>
+    <li><strong style="color:#e2e8f0">胜率可视化</strong>：进度条替代纯数字，直觉感更强</li>
+    <li><strong style="color:#e2e8f0">进阶详情折叠</strong>：GTO 术语、outs、赔率全部收到"展开详情"里，不干扰新手</li>
+  </ul>
+</div>
+
+<p class="subtitle">这个建议面板的方向 OK 吗？</p>

@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(ls -d .worktrees)",
+      "Bash(ls -d worktrees)",
+      "Bash(git commit *)",
+      "Bash(git worktree *)",
+      "Bash(npm install *)",
+      "Bash(npm test *)",
+      "Bash(node -c /d/Project/Poker-Advisor-Pro/.worktrees/feat-ux-optimization/PokerData.js)",
+      "Bash(xxd)",
+      "Bash(xxd PokerData.js)",
+      "Bash(npx jest *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(git push *)",
+      "Bash(gh pr create --title 'feat: UX optimization for new players' --body ' *)",
+      "Bash(where gh *)",
+      "Bash(winget list *)"
+    ]
+  }
+}
