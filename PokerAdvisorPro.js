@@ -964,6 +964,12 @@ function TexasHoldemAdvisor() {
 
   const handlePositionSelect = (key) => { setHeroPosition(key); setShowPositionSelector(false); };
 
+  useEffect(() => {
+    if (heroHand[0] === null || heroHand[1] === null) return;
+    const timer = setTimeout(() => { calculateEquity(); }, 800);
+    return () => clearTimeout(timer);
+  }, [heroHand, communityCards]);
+
   const getStrategyStyle = () => {
     switch(strategy) {
       case 'maniac': return 'bg-purple-900/50 text-purple-400 border-purple-800 shadow-[0_0_15px_rgba(168,85,247,0.3)]';
