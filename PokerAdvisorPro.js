@@ -102,35 +102,64 @@ const DrawProbabilityChart = ({ outs, street, t }) => {
   );
 };
 
-const CardSelector = ({ selectingFor, onClose, onCardSelect, unavailableCards, deckCount, t }) => {
+const CardSelector = ({ selectingFor, onClose, onCardSelect, unavailableCards, deckCount, t, selectedSuit, onSuitSelect, lang, SUITS, RANKS }) => {
   if (!selectingFor) return null;
 
   let title = t.selectCard;
   if (selectingFor.type === 'hero') title = `${t.selecting_hero} ${selectingFor.index + 1}/2`;
   if (selectingFor.type === 'board') title = selectingFor.index < 3 ? `${t.selecting_flop} ${selectingFor.index + 1}/3` : selectingFor.index === 3 ? t.selecting_turn : t.selecting_river;
 
+  const SUIT_LABELS = { s: '♠', h: '♥', c: '♣', d: '♦' };
+  const SUIT_COLORS = { s: 'text-slate-200', h: 'text-red-400', c: 'text-slate-200', d: 'text-red-400' };
+  const SUIT_BG = { s: 'bg-slate-700', h: 'bg-red-900/40', c: 'bg-slate-700', d: 'bg-red-900/40' };
+
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-800 p-4 rounded-xl max-w-lg w-full overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between mb-4 text-white font-bold">
-          <span>{title}</span>
-          <X onClick={onClose} className="cursor-pointer" />
+    <div className="fixed inset-0 z-50" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="absolute bottom-0 left-0 right-0 bg-slate-800 rounded-t-2xl border-t border-slate-600 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 bg-slate-600 rounded-full" />
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="flex justify-between items-center px-4 pb-3">
+          <span className="font-bold text-white text-sm">{title}</span>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-4 h-4"/></button>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 px-4 pb-3">
           {SUITS.map(suit => (
-            <div key={suit} className="flex flex-col gap-2">
-              {RANKS.map(rank => {
-                const takenCount = unavailableCards.filter(c => c.rank === rank && c.suit === suit).length;
+            <button
+              key={suit}
+              onClick={() => onSuitSelect(selectedSuit === suit ? null : suit)}
+              className={`py-3 rounded-lg text-2xl border-2 transition ${selectedSuit === suit ? `${SUIT_BG[suit]} border-blue-400` : 'bg-slate-900 border-slate-700 hover:border-slate-500'}`}
+            >
+              <span className={SUIT_COLORS[suit]}>{SUIT_LABELS[suit]}</span>
+            </button>
+          ))}
+        </div>
+
+        {selectedSuit && (
+          <div className="px-4 pb-6">
+            <div className="grid grid-cols-7 gap-2">
+              {[...RANKS].reverse().map(rank => {
+                const takenCount = unavailableCards.filter(c => c.rank === rank && c.suit === selectedSuit).length;
                 const isDisabled = takenCount >= deckCount;
                 return (
-                  <button key={rank + suit} disabled={isDisabled} onClick={() => onCardSelect({ rank, suit })} className={`p-1 rounded flex justify-center hover:bg-slate-700 ${isDisabled ? 'opacity-20 cursor-not-allowed' : ''}`}>
-                    <CardIcon rank={rank} suit={suit} />
+                  <button
+                    key={rank + selectedSuit}
+                    disabled={isDisabled}
+                    onClick={() => onCardSelect({ rank, suit: selectedSuit })}
+                    className={`py-3 rounded-lg text-sm font-bold border transition ${isDisabled ? 'opacity-20 cursor-not-allowed bg-slate-900 border-slate-800 text-slate-600' : `${SUIT_BG[selectedSuit]} border-slate-600 hover:border-blue-400 ${SUIT_COLORS[selectedSuit]}`}`}
+                  >
+                    {rank}
                   </button>
                 );
               })}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1205,13 +1234,18 @@ function TexasHoldemAdvisor() {
          })()}
       </div>
 
-      <CardSelector 
+      <CardSelector
         selectingFor={selectingFor}
-        onClose={() => setSelectingFor(null)}
-        onCardSelect={handleCardSelect}
+        onClose={() => { setSelectingFor(null); setCardSelectorSuit(null); }}
+        onCardSelect={(card) => { handleCardSelect(card); setCardSelectorSuit(null); }}
         unavailableCards={unavailableCards}
         deckCount={deckCount}
         t={t}
+        selectedSuit={cardSelectorSuit}
+        onSuitSelect={setCardSelectorSuit}
+        lang={lang}
+        SUITS={SUITS}
+        RANKS={RANKS}
       />
       
       <PositionSelector 
