@@ -342,7 +342,15 @@ window.PokerData.TEXTS = {
     equity_trend_chart_title: '手牌胜率趋势',
     num_opponents: '对手数量',
     equity_percentage: '胜率 (%)',
-    opponents_short: '人'
+    opponents_short: '人',
+    // 白话理由 (新手友好版)
+    reason_spr_low_plain: '你已经投入了太多筹码，弃牌比继续打损失更大',
+    reason_value_plain: '你的牌很强，趁对手还会跟注时多赚一些',
+    reason_bluff_semi_plain: '你有机会击中更强的牌，主动进攻可以多一种赢钱方式',
+    reason_bluff_pure_plain: '对手可能也没什么好牌，现在加注有机会让他们直接弃牌',
+    reason_odds_plain: '跟注在数学上是合算的，或者先看看情况再说',
+    show_details: '查看分析详情',
+    hide_details: '收起详情'
   },
   en: {
     appTitle: 'Poker Advisor Pro',
@@ -418,6 +426,14 @@ window.PokerData.TEXTS = {
     equity_trend_chart_title: 'Hand Equity Trend',
     num_opponents: 'Number of Opponents',
     equity_percentage: 'Equity (%)',
-    opponents_short: 'opp'
+    opponents_short: 'opp',
+    // Plain reasons (beginner-friendly)
+    reason_spr_low_plain: 'You\'ve put too many chips in — folding now costs more than continuing',
+    reason_value_plain: 'Your hand is strong. Bet now while opponents will still call',
+    reason_bluff_semi_plain: 'You can hit a stronger hand. Betting gives you two ways to win',
+    reason_bluff_pure_plain: 'Opponent may be weak. A raise here might take the pot without a showdown',
+    reason_odds_plain: 'Pot odds make calling profitable, or check and wait for more information',
+    show_details: 'Show Analysis',
+    hide_details: 'Hide Details'
   }
 };

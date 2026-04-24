@@ -104,7 +104,7 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
           if (h1 >= 9) return "pre_strong_pair";   
           return "pre_small_pair";                 
       }
-      if (h1 >= 13 && h2 >= 12) return "pre_premium_high"; 
+      if (h1 === 14 && h2 >= 12) return "pre_premium_high";
       if (isSuited) {
           if (h1 === 14) return "pre_suited_ace";
           if ((h1 - h2 <= 2)) return "pre_suited_connector"; 
@@ -254,11 +254,10 @@ describe('evaluateHand', () => {
     expect(evaluateHand(hand)).toBe(6000000 + 14 * 15 + 13);
   });
 
-  test('should prioritize flush over straight', () => {
-    // 7 cards: 4s 5s 6s 7s 8s 9d Tc (should be 8-high flush, not a straight)
+  test('should correctly identify straight flush over plain flush', () => {
+    // 4s 5s 6s 7s 8s 9d Tc — the spades form an 8-high straight flush
     const hand = createHand(['4', '5', '6', '7', '8', '9', 'T'], ['s', 's', 's', 's', 's', 'd', 'c']);
-    const expectedScore = 5000000 + 8*15**4 + 7*15**3 + 6*15**2 + 5*15 + 4;
-    expect(evaluateHand(hand)).toBe(expectedScore);
+    expect(evaluateHand(hand)).toBe(8000000 + 8); // 8-high straight flush
   });
 
   test('should correctly evaluate One Pair with kickers', () => {
@@ -360,5 +359,50 @@ describe('analyzeHandFeatures', () => {
       const community = createHand(['J', '7', '2'], ['h', 'c', 'd']);
       expect(analyzeHandFeatures(hero, community)).toBe('overcards');
     });
+  });
+});
+
+// 复制函数到测试文件（遵循本项目的测试约定）
+const getAdviceStyle = (adviceKey) => {
+  if (adviceKey === 'advice_fold')
+    return { bg: 'bg-red-950', border: 'border-red-700', text: 'text-red-300', bar: 'bg-red-500' };
+  if (['advice_raise', 'advice_allin', 'advice_raise_bluff', 'advice_allin_bluff'].includes(adviceKey))
+    return { bg: 'bg-emerald-950', border: 'border-emerald-700', text: 'text-emerald-300', bar: 'bg-emerald-500' };
+  return { bg: 'bg-amber-950', border: 'border-amber-700', text: 'text-amber-300', bar: 'bg-amber-500' };
+};
+
+describe('getAdviceStyle', () => {
+  test('fold returns red style', () => {
+    const s = getAdviceStyle('advice_fold');
+    expect(s.bg).toBe('bg-red-950');
+    expect(s.bar).toBe('bg-red-500');
+  });
+
+  test('raise returns green style', () => {
+    const s = getAdviceStyle('advice_raise');
+    expect(s.bg).toBe('bg-emerald-950');
+    expect(s.bar).toBe('bg-emerald-500');
+  });
+
+  test('allin returns green style', () => {
+    expect(getAdviceStyle('advice_allin').bg).toBe('bg-emerald-950');
+  });
+
+  test('raise_bluff returns green style', () => {
+    expect(getAdviceStyle('advice_raise_bluff').bg).toBe('bg-emerald-950');
+  });
+
+  test('call returns amber style', () => {
+    const s = getAdviceStyle('advice_call');
+    expect(s.bg).toBe('bg-amber-950');
+    expect(s.bar).toBe('bg-amber-500');
+  });
+
+  test('check_call returns amber style', () => {
+    expect(getAdviceStyle('advice_check_call').bg).toBe('bg-amber-950');
+  });
+
+  test('unknown key returns amber style as default', () => {
+    expect(getAdviceStyle('advice_unknown').bg).toBe('bg-amber-950');
   });
 });

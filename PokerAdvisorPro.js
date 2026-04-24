@@ -102,35 +102,64 @@ const DrawProbabilityChart = ({ outs, street, t }) => {
   );
 };
 
-const CardSelector = ({ selectingFor, onClose, onCardSelect, unavailableCards, deckCount, t }) => {
+const CardSelector = ({ selectingFor, onClose, onCardSelect, unavailableCards, deckCount, t, selectedSuit, onSuitSelect, lang, SUITS, RANKS }) => {
   if (!selectingFor) return null;
 
   let title = t.selectCard;
   if (selectingFor.type === 'hero') title = `${t.selecting_hero} ${selectingFor.index + 1}/2`;
   if (selectingFor.type === 'board') title = selectingFor.index < 3 ? `${t.selecting_flop} ${selectingFor.index + 1}/3` : selectingFor.index === 3 ? t.selecting_turn : t.selecting_river;
 
+  const SUIT_LABELS = { s: '♠', h: '♥', c: '♣', d: '♦' };
+  const SUIT_COLORS = { s: 'text-slate-200', h: 'text-red-400', c: 'text-slate-200', d: 'text-red-400' };
+  const SUIT_BG = { s: 'bg-slate-700', h: 'bg-red-900/40', c: 'bg-slate-700', d: 'bg-red-900/40' };
+
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-800 p-4 rounded-xl max-w-lg w-full overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between mb-4 text-white font-bold">
-          <span>{title}</span>
-          <X onClick={onClose} className="cursor-pointer" />
+    <div className="fixed inset-0 z-50" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="absolute bottom-0 left-0 right-0 bg-slate-800 rounded-t-2xl border-t border-slate-600 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 bg-slate-600 rounded-full" />
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="flex justify-between items-center px-4 pb-3">
+          <span className="font-bold text-white text-sm">{title}</span>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-4 h-4"/></button>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 px-4 pb-3">
           {SUITS.map(suit => (
-            <div key={suit} className="flex flex-col gap-2">
-              {RANKS.map(rank => {
-                const takenCount = unavailableCards.filter(c => c.rank === rank && c.suit === suit).length;
+            <button
+              key={suit}
+              onClick={() => onSuitSelect(selectedSuit === suit ? null : suit)}
+              className={`py-3 rounded-lg text-2xl border-2 transition ${selectedSuit === suit ? `${SUIT_BG[suit]} border-blue-400` : 'bg-slate-900 border-slate-700 hover:border-slate-500'}`}
+            >
+              <span className={SUIT_COLORS[suit]}>{SUIT_LABELS[suit]}</span>
+            </button>
+          ))}
+        </div>
+
+        {selectedSuit && (
+          <div className="px-4 pb-6">
+            <div className="grid grid-cols-7 gap-2">
+              {[...RANKS].reverse().map(rank => {
+                const takenCount = unavailableCards.filter(c => c.rank === rank && c.suit === selectedSuit).length;
                 const isDisabled = takenCount >= deckCount;
                 return (
-                  <button key={rank + suit} disabled={isDisabled} onClick={() => onCardSelect({ rank, suit })} className={`p-1 rounded flex justify-center hover:bg-slate-700 ${isDisabled ? 'opacity-20 cursor-not-allowed' : ''}`}>
-                    <CardIcon rank={rank} suit={suit} />
+                  <button
+                    key={rank + selectedSuit}
+                    disabled={isDisabled}
+                    onClick={() => onCardSelect({ rank, suit: selectedSuit })}
+                    className={`py-3 rounded-lg text-sm font-bold border transition ${isDisabled ? 'opacity-20 cursor-not-allowed bg-slate-900 border-slate-800 text-slate-600' : `${SUIT_BG[selectedSuit]} border-slate-600 hover:border-blue-400 ${SUIT_COLORS[selectedSuit]}`}`}
+                  >
+                    {rank}
                   </button>
                 );
               })}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -338,7 +367,7 @@ const analyzeHandFeatures = (heroCards, communityCards) => {
           if (h1 >= 9) return "pre_strong_pair";   
           return "pre_small_pair";                 
       }
-      if (h1 >= 13 && h2 >= 12) return "pre_premium_high"; 
+      if (h1 === 14 && h2 >= 12) return "pre_premium_high";
       if (isSuited) {
           if (h1 === 14) return "pre_suited_ace";
           if ((h1 - h2 <= 2)) return "pre_suited_connector"; 
@@ -533,6 +562,15 @@ const parseRangeString = (rangeStr) => {
 };
 
 
+// 根据建议键返回对应的 Tailwind 颜色样式
+const getAdviceStyle = (adviceKey) => {
+  if (adviceKey === 'advice_fold')
+    return { bg: 'bg-red-950', border: 'border-red-700', text: 'text-red-300', bar: 'bg-red-500' };
+  if (['advice_raise', 'advice_allin', 'advice_raise_bluff', 'advice_allin_bluff'].includes(adviceKey))
+    return { bg: 'bg-emerald-950', border: 'border-emerald-700', text: 'text-emerald-300', bar: 'bg-emerald-500' };
+  return { bg: 'bg-amber-950', border: 'border-amber-700', text: 'text-amber-300', bar: 'bg-amber-500' };
+};
+
 // --- 主程序 ---
 function TexasHoldemAdvisor() {
   const [lang, setLang] = useState('zh');
@@ -561,10 +599,12 @@ function TexasHoldemAdvisor() {
   
   const [result, setResult] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [selectingFor, setSelectingFor] = useState(null); 
+  const [selectingFor, setSelectingFor] = useState(null);
   const [settlementMode, setSettlementMode] = useState(false);
   const [potSegments, setPotSegments] = useState([]);
   const [equityTrendData, setEquityTrendData] = useState(null); // 新增状态变量
+  const [showDetails, setShowDetails] = useState(false);
+  const [cardSelectorSuit, setCardSelectorSuit] = useState(null);
 
   const currentOpponentBets = players.reduce((sum, p) => sum + p.bet, 0); 
   const totalPot = mainPot + currentOpponentBets + heroBet;
@@ -738,6 +778,7 @@ function TexasHoldemAdvisor() {
     setResult(null);
 
     setEquityTrendData(null); // 清除之前的趋势数据
+    setShowDetails(false);
 
     // 使用setTimeout来确保UI更新（加载状态），然后执行计算
     await new Promise(resolve => setTimeout(resolve, 50));
@@ -831,7 +872,9 @@ function TexasHoldemAdvisor() {
 
       setResult({
         equity: equity.toFixed(1),
+        adviceKey,
         advice: t[adviceKey] || "Advice N/A",
+        plainReason: t[reasonKey + '_plain'] || t[reasonKey] || '',
         reason: finalReason,
         handTypeLabel: analysisData?.label,
         textureLabel: textureStrategy?.name,
@@ -920,6 +963,12 @@ function TexasHoldemAdvisor() {
   };
 
   const handlePositionSelect = (key) => { setHeroPosition(key); setShowPositionSelector(false); };
+
+  useEffect(() => {
+    if (heroHand[0] === null || heroHand[1] === null) return;
+    const timer = setTimeout(() => { calculateEquity(); }, 800);
+    return () => clearTimeout(timer);
+  }, [heroHand, communityCards]);
 
   const getStrategyStyle = () => {
     switch(strategy) {
@@ -1016,6 +1065,25 @@ function TexasHoldemAdvisor() {
                      </button>
                      <button onClick={() => setHeroBet(heroStack)} className="flex-1 bg-red-600 hover:bg-red-500 py-2 rounded text-xs text-white">All-In</button>
                   </div>
+               {totalPot > 0 && (
+                 <div className="flex gap-1.5">
+                   {[
+                     { label: '1/3', value: Math.round(totalPot / 3) },
+                     { label: '1/2', value: Math.round(totalPot / 2) },
+                     { label: lang==='zh'?'底池':'Pot', value: totalPot },
+                     { label: 'All-In', value: heroStack, isAllIn: true },
+                   ].map(({ label, value, isAllIn }) => (
+                     <button
+                       key={label}
+                       onClick={() => handleHeroBetChange(value)}
+                       className={`flex-1 py-1.5 rounded text-xs font-mono font-bold transition ${isAllIn ? 'bg-red-900/60 text-red-300 border border-red-700 hover:bg-red-800/60' : 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600'}`}
+                     >
+                       <div className="text-[9px] opacity-70">{label}</div>
+                       <div>{value}</div>
+                     </button>
+                   ))}
+                 </div>
+               )}
                   <input type="number" value={heroBet===0?'':heroBet} onChange={e => handleHeroBetChange(e.target.value)} placeholder={t.bet_placeholder} className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-right font-mono"/>
                </div>
             </div>
@@ -1024,21 +1092,41 @@ function TexasHoldemAdvisor() {
          <div className="space-y-2">
             <div className="flex justify-between items-center px-1"><span className="text-xs font-bold text-slate-400">{t.players}</span><button onClick={() => setPlayers([...players, {id: Date.now(), bet: 0, totalContributed: 0, active: true}])} className="text-[10px] bg-slate-800 border border-slate-600 px-2 py-0.5 rounded text-slate-300">+ {t.add_player}</button></div>
             {players.map((p, idx) => (
-               <div key={p.id} className={`flex items-center gap-3 bg-slate-800 p-2 rounded-lg border ${p.active ? 'border-slate-700' : 'opacity-50 border-transparent'}`}>
-                  <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400">{idx+1}</div>
-                  <div className="flex-1 grid grid-cols-3 gap-2">
-                     <button onClick={() => { const n = [...players]; n[idx].active = !n[idx].active; setPlayers(n); }} className={`text-xs rounded py-1 ${p.active ? 'bg-emerald-900/30 text-emerald-400' : 'bg-slate-700 text-slate-500'}`}>{p.active ? t.active : t.folded}</button>
-                     <div className="col-span-2 flex items-center bg-slate-900 rounded border border-slate-700">
-                        <span className="text-xs text-slate-500 pl-2">$</span>
-                        <input type="number" value={p.bet===0?'':p.bet} placeholder="0" onChange={e => handleOpponentBetChange(p.id, e.target.value)} className="w-full bg-transparent text-white text-sm py-1 font-mono focus:outline-none text-right pr-2" />
-                        {maxBet > p.bet && p.active && (
-                           <button onClick={() => handleOpponentBetChange(p.id, maxBet)} className="text-[10px] bg-blue-600 text-white px-2 h-full rounded-r-md hover:bg-blue-500">
-                              Call
-                           </button>
-                        )}
-                     </div>
-                  </div>
-                  <button onClick={() => setPlayers(players.filter(x => x.id !== p.id))} className="text-slate-600 hover:text-red-400 px-2">×</button>
+               <div key={p.id} className={`bg-slate-800 p-2 rounded-lg border ${p.active ? 'border-slate-700' : 'opacity-40 border-transparent'}`}>
+                 <div className="flex items-center gap-2">
+                   <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400 shrink-0">{idx+1}</div>
+                   {p.active ? (
+                     <>
+                       <button
+                         onClick={() => { const n = [...players]; n[idx].active = false; setPlayers(n); }}
+                         className="text-xs bg-slate-700 text-slate-400 border border-slate-600 rounded px-2 py-1 hover:bg-red-900/40 hover:text-red-300 hover:border-red-700 transition shrink-0"
+                       >
+                         {lang==='zh'?'弃牌':'Fold'}
+                       </button>
+                       {maxBet > 0 && (
+                         <button
+                           onClick={() => handleOpponentBetChange(p.id, maxBet)}
+                           className="text-xs bg-blue-900/50 text-blue-300 border border-blue-700 rounded px-2 py-1 hover:bg-blue-800/50 transition shrink-0"
+                         >
+                           {lang==='zh'?`跟注 ${maxBet}`:`Call ${maxBet}`}
+                         </button>
+                       )}
+                       <div className="flex-1 flex items-center bg-slate-900 rounded border border-slate-700">
+                         <span className="text-xs text-slate-500 pl-2">$</span>
+                         <input
+                           type="number"
+                           value={p.bet===0?'':p.bet}
+                           placeholder={lang==='zh'?'加注额':'Raise'}
+                           onChange={e => handleOpponentBetChange(p.id, e.target.value)}
+                           className="w-full bg-transparent text-white text-sm py-1 font-mono focus:outline-none text-right pr-2"
+                         />
+                       </div>
+                     </>
+                   ) : (
+                     <span className="flex-1 text-xs text-slate-500 italic">{t.folded}</span>
+                   )}
+                   <button onClick={() => setPlayers(players.filter(x => x.id !== p.id))} className="text-slate-600 hover:text-red-400 px-1 shrink-0">×</button>
+                 </div>
                </div>
             ))}
          </div>
@@ -1064,76 +1152,106 @@ function TexasHoldemAdvisor() {
             </div>
          )}
 
-         {result && !settlementMode && (
-          <div className={`border rounded-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 ${result.isBluff ? 'bg-purple-900/20 border-purple-500/50' : 'bg-slate-900 border-slate-700'}`}>
-             <div className="p-4 bg-slate-800/50 border-b border-slate-800 flex justify-between items-center">
-                <div>
-                   <h2 className={`text-2xl font-bold ${result.isBluff ? 'text-purple-400 animate-pulse' : result.advice?.includes('Fold') ? 'text-red-400' : 'text-emerald-400'}`}>{result.advice}</h2>
-                   <div className="mt-1 flex flex-wrap gap-1">
-                      {result.handTypeLabel && <span className="text-xs bg-slate-700 px-2 py-0.5 rounded text-blue-200 border border-blue-500/30 flex items-center gap-1"><Lightbulb className="w-3 h-3"/> {result.handTypeLabel}</span>}
-                      {result.textureLabel && (
-                        <span className={`text-xs px-2 py-0.5 rounded border flex items-center gap-1 ${result.textureType==='wet' ? 'bg-amber-900/30 text-amber-200 border-amber-600/50' : 'bg-slate-700 text-indigo-200 border-indigo-500/30'}`}>
-                           <Grid className="w-3 h-3"/> {result.textureLabel} {result.textureType==='wet'?'(Wet)':'(Dry)'}
-                        </span>
-                      )}
-                      {heroPosition && <span className="text-xs bg-slate-700 px-2 py-0.5 rounded text-slate-300 border border-slate-600 flex items-center gap-1"><MapPin className="w-3 h-3"/> {heroPosition}</span>}
+         {result && !settlementMode && (() => {
+           const style = getAdviceStyle(result.adviceKey);
+           return (
+             <div className={`border-2 rounded-xl overflow-hidden ${style.border} ${style.bg}`}>
+               {/* 交通灯决策头 */}
+               <div className="p-4 text-center border-b border-slate-800/50">
+                 <h2 className={`text-2xl font-bold ${style.text}`}>{result.advice}</h2>
+                 <p className="text-sm mt-1 text-slate-300 leading-relaxed">{result.plainReason}</p>
+               </div>
+
+               {/* 胜率进度条 */}
+               <div className="px-4 pt-3 pb-2">
+                 <div className="flex justify-between text-xs text-slate-500 mb-1">
+                   <span>{t.equity}</span>
+                   <span className="font-mono font-bold text-white">{result.equity}%</span>
+                 </div>
+                 <div className="w-full bg-slate-800 rounded-full h-2.5">
+                   <div className={`h-2.5 rounded-full transition-all duration-500 ${style.bar}`} style={{ width: `${Math.min(Number(result.equity), 100)}%` }} />
+                 </div>
+               </div>
+
+               {/* 标签行 */}
+               <div className="px-4 pb-3 flex flex-wrap gap-1">
+                 {result.handTypeLabel && (
+                   <span className="text-xs bg-slate-800 px-2 py-0.5 rounded text-blue-200 border border-blue-500/30 flex items-center gap-1">
+                     <Lightbulb className="w-3 h-3"/> {result.handTypeLabel}
+                   </span>
+                 )}
+                 {result.textureLabel && (
+                   <span className={`text-xs px-2 py-0.5 rounded border flex items-center gap-1 ${result.textureType==='wet' ? 'bg-amber-900/30 text-amber-200 border-amber-600/50' : 'bg-slate-800 text-indigo-200 border-indigo-500/30'}`}>
+                     <Grid className="w-3 h-3"/> {result.textureLabel} {lang==='zh' ? (result.textureType==='wet' ? '(潮湿)' : '(干燥)') : (result.textureType==='wet' ? '(Wet)' : '(Dry)')}
+                   </span>
+                 )}
+                 {heroPosition && (
+                   <span className="text-xs bg-slate-800 px-2 py-0.5 rounded text-slate-300 border border-slate-600 flex items-center gap-1">
+                     <MapPin className="w-3 h-3"/> {heroPosition}
+                   </span>
+                 )}
+               </div>
+
+               {/* 下注建议（推荐项高亮） */}
+               {result.betSizes && (
+                 <div className="px-4 pb-4">
+                   <div className="text-xs text-slate-500 mb-2 flex items-center gap-1"><MousePointerClick className="w-3 h-3"/> {t.betSizing}</div>
+                   <div className="grid grid-cols-3 gap-2">
+                     <button onClick={() => setHeroBet(result.betSizes.smart)} className="flex flex-col items-center p-2 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700 transition">
+                       <div className="text-[10px] text-slate-500 mb-1 uppercase tracking-wider">{t.bet_size_small}</div>
+                       <div className="font-mono font-bold text-slate-300">{result.betSizes.smart}</div>
+                     </button>
+                     <button onClick={() => setHeroBet(result.betSizes.value)} className={`flex flex-col items-center p-2 rounded border-2 ${style.border} ${style.bg} hover:brightness-110 transition`}>
+                       <div className={`text-[10px] mb-1 font-bold ${style.text}`}>★ {t.bet_size_med}</div>
+                       <div className="font-mono font-bold text-white text-base">{result.betSizes.value}</div>
+                     </button>
+                     <button onClick={() => setHeroBet(result.betSizes.pot)} className="flex flex-col items-center p-2 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700 transition">
+                       <div className="text-[10px] text-slate-500 mb-1 uppercase tracking-wider">{t.bet_size_large}</div>
+                       <div className="font-mono font-bold text-slate-300">{result.betSizes.pot}</div>
+                     </button>
                    </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-white">{result.equity}%</div>
-                  <div className="text-xs text-slate-500">{t.equity}</div>
-                </div>
-             </div>
-             
-             <div className="p-4 space-y-3">
-               <p className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed font-mono">{result.reason}</p>
-               
-               {result.drawStats && (
-                 // 听牌数学
-                 // ... (保持不变)
-                 <div className="bg-slate-800 p-2 rounded border border-slate-700 flex items-center gap-3">
-                    <div className="bg-indigo-900/50 p-2 rounded text-indigo-300"><Calculator className="w-5 h-5"/></div>
-                    <div>
-                       <div className="text-sm font-bold text-indigo-200">{result.drawStats.label} ({result.drawStats.outs} Outs)</div>
-                    </div>
                  </div>
                )}
 
-               {/* 胜率趋势图 */}
-               {equityTrendData && <EquityTrendChart data={equityTrendData} t={t} />}
-               {result.drawStats && <DrawProbabilityChart outs={result.drawStats.outs} street={street} t={t} />}
-               
-               {result.betSizes && (
-                 <div>
-                   <div className="text-xs text-slate-500 mb-2 flex items-center gap-1"><MousePointerClick className="w-3 h-3"/> {t.betSizing}</div>
-                   <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-800/50">
-                      <button onClick={() => setHeroBet(result.betSizes.smart)} className="flex flex-col items-center p-2 rounded bg-emerald-900/20 border border-emerald-500/30 hover:bg-emerald-900/40 transition">
-                        <div className="text-[10px] text-emerald-400 mb-1 uppercase tracking-wider flex items-center gap-1"><Zap className="w-3 h-3"/> {t.bet_size_small}</div>
-                        <div className="font-mono font-bold text-emerald-300">{result.betSizes.smart}</div>
-                      </button>
-                      <button onClick={() => setHeroBet(result.betSizes.value)} className="flex flex-col items-center p-2 rounded hover:bg-slate-800 border border-transparent hover:border-slate-700">
-                        <div className="text-[10px] text-slate-500 mb-1">{t.bet_size_med}</div>
-                        <div className="font-mono font-bold text-blue-300">{result.betSizes.value}</div>
-                      </button>
-                      <button onClick={() => setHeroBet(result.betSizes.pot)} className="flex flex-col items-center p-2 rounded hover:bg-slate-800 border border-transparent hover:border-slate-700">
-                        <div className="text-[10px] text-slate-500 mb-1">{t.bet_size_large}</div>
-                        <div className="font-mono font-bold text-blue-300">{result.betSizes.pot}</div>
-                      </button>
+               {/* 折叠详情 */}
+               <div className="border-t border-slate-800">
+                 <button onClick={() => setShowDetails(d => !d)} className="w-full px-4 py-2.5 text-left flex justify-between items-center text-xs text-slate-500 hover:bg-slate-800/50 transition">
+                   <span>📊 {showDetails ? t.hide_details : t.show_details}</span>
+                   <span>{showDetails ? '▲' : '▼'}</span>
+                 </button>
+                 {showDetails && (
+                   <div className="p-4 pt-0 space-y-3">
+                     <p className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed font-mono">{result.reason}</p>
+                     {result.drawStats && (
+                       <div className="bg-slate-800 p-2 rounded border border-slate-700 flex items-center gap-3">
+                         <div className="bg-indigo-900/50 p-2 rounded text-indigo-300"><Calculator className="w-5 h-5"/></div>
+                         <div>
+                           <div className="text-sm font-bold text-indigo-200">{result.drawStats.label} ({result.drawStats.outs} Outs)</div>
+                         </div>
+                       </div>
+                     )}
+                     {equityTrendData && <EquityTrendChart data={equityTrendData} t={t} />}
+                     {result.drawStats && <DrawProbabilityChart outs={result.drawStats.outs} street={street} t={t} />}
                    </div>
-                 </div>
-               )}
+                 )}
+               </div>
              </div>
-          </div>
-        )}
+           );
+         })()}
       </div>
 
-      <CardSelector 
+      <CardSelector
         selectingFor={selectingFor}
-        onClose={() => setSelectingFor(null)}
-        onCardSelect={handleCardSelect}
+        onClose={() => { setSelectingFor(null); setCardSelectorSuit(null); }}
+        onCardSelect={(card) => { handleCardSelect(card); setCardSelectorSuit(null); }}
         unavailableCards={unavailableCards}
         deckCount={deckCount}
         t={t}
+        selectedSuit={cardSelectorSuit}
+        onSuitSelect={setCardSelectorSuit}
+        lang={lang}
+        SUITS={SUITS}
+        RANKS={RANKS}
       />
       
       <PositionSelector 
