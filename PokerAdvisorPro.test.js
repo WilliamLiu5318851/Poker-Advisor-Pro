@@ -407,7 +407,7 @@ describe('getAdviceStyle', () => {
   });
 });
 
-// ─── computePots ───────────────────────────────────────────────────────────
+// ─── computePots（与 PokerAdvisorPro.js 中的函数保持同步）────────────────────
 function computePots(contributions) {
   const result = [];
   let remaining = contributions.map(c => ({ ...c }));
