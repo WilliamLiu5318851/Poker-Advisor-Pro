@@ -945,22 +945,17 @@ function TexasHoldemAdvisor() {
   };
 
   const enterSettlement = () => {
-    const heroTotal = heroTotalContributed + heroBet;
-    const opps = players.map(p => ({ ...p, finalTotal: (p.totalContributed || 0) + p.bet }));
-    const activeCaps = [...opps.filter(p => p.active).map(p => p.finalTotal), heroTotal].filter(v => v > 0);
-    const uniqueCaps = [...new Set(activeCaps)].sort((a, b) => a - b);
-    const segments = [];
-    let prevCap = 0;
-    uniqueCaps.forEach((cap) => {
-      const amount = cap - prevCap;
-      if (amount <= 0) return;
-      let potSize = 0; let contributors = 0; let heroInvolved = false;
-      if (heroTotal > prevCap) { potSize += Math.min(amount, heroTotal - prevCap); heroInvolved = true; contributors++; }
-      opps.forEach(p => { if (p.finalTotal > prevCap) { potSize += Math.min(amount, p.finalTotal - prevCap); if (p.active) contributors++; } });
-      if (potSize > 0 && heroInvolved) segments.push({ id: cap, amount: potSize, contestants: contributors, result: 'loss' });
-      prevCap = cap;
-    });
-    setPotSegments(segments); setSettlementMode(true);
+    const contributions = [
+      { id: 'hero', amount: heroTotalContributed + heroBet, eligible: true },
+      ...players.map(p => ({
+        id: p.id,
+        amount: (p.totalContributed || 0) + p.bet,
+        eligible: !!p.active,
+      })),
+    ];
+    const computed = computePots(contributions);
+    setPotSegments(computed.map(pot => ({ ...pot, result: 'loss' })));
+    setSettlementMode(true);
   };
 
   const handleFold = () => {
@@ -975,7 +970,10 @@ function TexasHoldemAdvisor() {
   };
   const confirmSettlement = () => {
     let winnings = 0;
-    potSegments.forEach(seg => { if (seg.result === 'win') winnings += seg.amount; else if (seg.result === 'split') winnings += Math.floor(seg.amount / seg.contestants); });
+    potSegments.forEach(seg => {
+      if (seg.result === 'win') winnings += seg.amount;
+      else if (seg.result === 'split') winnings += Math.floor(seg.amount / (seg.eligible.length || 1));
+    });
     setHeroStack(Math.max(0, (heroStack - heroBet) + winnings));
     setHeroBet(0); setStreet(0); setMainPot(0); setHeroTotalContributed(0);
     setPlayers(players.map(p => ({ ...p, bet: 0, totalContributed: 0, active: true })));
@@ -1211,12 +1209,21 @@ function TexasHoldemAdvisor() {
             <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-3">
               <h2 className="text-center text-xl font-bold text-indigo-200">{t.settle_title}</h2>
               {potSegments.map((seg, idx) => (
-               <div key={idx} className="bg-slate-800 p-3 rounded border border-slate-700 flex justify-between items-center">
-                 <span className="text-sm font-bold text-slate-300 flex gap-2 items-center"><ShieldCheck className="w-4 h-4"/> {idx===0?t.segment_main:`${t.segment_side} ${idx}`} (${seg.amount})</span>
-                 <div className="flex gap-1">
-                   <button onClick={() => updateSegmentResult(idx, 'win')} className={`px-2 py-1 text-xs rounded border ${seg.result==='win'?'bg-emerald-600 text-white border-emerald-500':'bg-slate-700 text-slate-400 border-slate-600'}`}>{t.settle_win}</button>
-                   <button onClick={() => updateSegmentResult(idx, 'split')} className={`px-2 py-1 text-xs rounded border ${seg.result==='split'?'bg-blue-600 text-white border-blue-500':'bg-slate-700 text-slate-400 border-slate-600'}`}>{t.settle_split}</button>
-                   <button onClick={() => updateSegmentResult(idx, 'loss')} className={`px-2 py-1 text-xs rounded border ${seg.result==='loss'?'bg-red-900/50 text-red-200 border-red-800':'bg-slate-700 text-slate-400 border-slate-600'}`}>{t.settle_loss}</button>
+               <div key={idx} className="bg-slate-800 p-3 rounded border border-slate-700">
+                 <div className="flex justify-between items-center mb-1">
+                   <span className="text-sm font-bold text-slate-300 flex gap-2 items-center">
+                     <ShieldCheck className="w-4 h-4"/>
+                     {idx === 0 ? (lang === 'zh' ? '主池' : 'Main Pot') : (lang === 'zh' ? `边池 ${idx}` : `Side Pot ${idx}`)} (${seg.amount})
+                   </span>
+                   <div className="flex gap-1">
+                     <button onClick={() => updateSegmentResult(idx, 'win')} className={`px-2 py-1 text-xs rounded border ${seg.result==='win'?'bg-emerald-600 text-white border-emerald-500':'bg-slate-700 text-slate-400 border-slate-600'}`}>{t.settle_win}</button>
+                     <button onClick={() => updateSegmentResult(idx, 'split')} className={`px-2 py-1 text-xs rounded border ${seg.result==='split'?'bg-blue-600 text-white border-blue-500':'bg-slate-700 text-slate-400 border-slate-600'}`}>{t.settle_split}</button>
+                     <button onClick={() => updateSegmentResult(idx, 'loss')} className={`px-2 py-1 text-xs rounded border ${seg.result==='loss'?'bg-red-900/50 text-red-200 border-red-800':'bg-slate-700 text-slate-400 border-slate-600'}`}>{t.settle_loss}</button>
+                   </div>
+                 </div>
+                 <div className="text-[10px] text-slate-500">
+                   {lang === 'zh' ? '可赢玩家：' : 'Eligible: '}
+                   {seg.eligible.map(id => id === 'hero' ? 'Hero' : `${lang === 'zh' ? '对手' : 'Opp'}${players.findIndex(p => p.id === id) + 1}`).join('、')}
                  </div>
                </div>
              ))}
