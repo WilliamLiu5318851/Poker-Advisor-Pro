@@ -633,7 +633,7 @@ function TexasHoldemAdvisor() {
       ...players.map(p => ({
         id: p.id,
         amount: (p.totalContributed || 0) + p.bet,
-        eligible: p.active,
+        eligible: !!p.active,
       })),
     ];
     if (contributions.every(c => c.amount === 0)) return [];
