@@ -621,11 +621,29 @@ function TexasHoldemAdvisor() {
   const [showDetails, setShowDetails] = useState(false);
   const [cardSelectorSuit, setCardSelectorSuit] = useState(null);
 
-  const currentOpponentBets = players.reduce((sum, p) => sum + p.bet, 0); 
+  const currentOpponentBets = players.reduce((sum, p) => sum + p.bet, 0);
   const totalPot = mainPot + currentOpponentBets + heroBet;
   const maxBet = Math.max(heroBet, ...players.map(p => p.bet));
   const callAmount = maxBet - heroBet;
-  const currentStack = heroStack - heroBet; 
+  const currentStack = heroStack - heroBet;
+
+  const pots = useMemo(() => {
+    const contributions = [
+      { id: 'hero', amount: heroTotalContributed + heroBet, eligible: true },
+      ...players.map(p => ({
+        id: p.id,
+        amount: (p.totalContributed || 0) + p.bet,
+        eligible: p.active,
+      })),
+    ];
+    if (contributions.every(c => c.amount === 0)) return [];
+    return computePots(contributions);
+  }, [heroTotalContributed, heroBet, players]);
+
+  const heroEffectivePot = pots.length > 0
+    ? pots.filter(p => p.eligible.includes('hero')).reduce((s, p) => s + p.amount, 0)
+    : totalPot;
+
   const spr = currentStack > 0 && totalPot > 0 ? (currentStack / totalPot).toFixed(2) : '∞';
   
   // Call Action Logic
