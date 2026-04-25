@@ -1038,26 +1038,32 @@ function TexasHoldemAdvisor() {
                    <div key={i} style={{ flex: pot.amount, background: i === 0 ? '#10b981' : i === 1 ? '#6366f1' : '#3b82f6' }} />
                  ))}
                </div>
-               <div className="flex gap-2 mb-2">
-                 {pots.map((pot, i) => {
-                   const colors = [
-                     { border: 'border-emerald-700', bg: 'bg-emerald-950', text: 'text-emerald-300', label: 'text-emerald-400' },
-                     { border: 'border-indigo-700',  bg: 'bg-indigo-950',  text: 'text-indigo-300',  label: 'text-indigo-400' },
-                     { border: 'border-blue-700',    bg: 'bg-blue-950',    text: 'text-blue-300',    label: 'text-blue-400' },
-                   ];
-                   const c = colors[Math.min(i, colors.length - 1)];
-                   const eligibleLabel = pot.eligible.map(id => id === 'hero' ? 'Hero' : `${lang === 'zh' ? '对手' : 'Opp'}${players.findIndex(p => p.id === id) + 1}`).join('·');
-                   return (
-                     <div key={i} className={`flex-1 border rounded-lg p-2 text-center ${c.border} ${c.bg}`}>
-                       <div className={`text-[10px] font-bold mb-1 ${c.label}`}>{pot.label}</div>
-                       <div className={`text-lg font-mono font-bold ${c.text}`}>${pot.amount}</div>
-                       <div className="text-[9px] text-slate-500 mt-1">{eligibleLabel}</div>
-                     </div>
-                   );
-                 })}
+               {(() => {
+                 const POT_COLORS = [
+                   { border: 'border-emerald-700', bg: 'bg-emerald-950', text: 'text-emerald-300', label: 'text-emerald-400' },
+                   { border: 'border-indigo-700',  bg: 'bg-indigo-950',  text: 'text-indigo-300',  label: 'text-indigo-400' },
+                   { border: 'border-blue-700',    bg: 'bg-blue-950',    text: 'text-blue-300',    label: 'text-blue-400' },
+                 ];
+                 return (
+                   <div className="flex gap-2 mb-2">
+                     {pots.map((pot, i) => {
+                       const c = POT_COLORS[Math.min(i, POT_COLORS.length - 1)];
+                       const potLabel = i === 0 ? (lang === 'zh' ? '主池' : 'Main Pot') : (lang === 'zh' ? `边池 ${i}` : `Side Pot ${i}`);
+                       const eligibleLabel = pot.eligible.map(id => id === 'hero' ? 'Hero' : `${lang === 'zh' ? '对手' : 'Opp'}${players.findIndex(p => p.id === id) + 1}`).join('·');
+                       return (
+                         <div key={i} className={`flex-1 border rounded-lg p-2 text-center ${c.border} ${c.bg}`}>
+                           <div className={`text-[10px] font-bold mb-1 ${c.label}`}>{potLabel}</div>
+                           <div className={`text-lg font-mono font-bold ${c.text}`}>${pot.amount}</div>
+                           <div className="text-[9px] text-slate-500 mt-1">{eligibleLabel}</div>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 );
+               })()}
                </div>
                <div className="text-center text-xs text-slate-500">
-                 {lang === 'zh' ? '总底池' : 'Total'} ${totalPot} = {pots.map(p => `${p.label} $${p.amount}`).join(' + ')}
+                 {lang === 'zh' ? '总底池' : 'Total'} ${totalPot} = {pots.map((p, idx) => `${idx === 0 ? (lang === 'zh' ? '主池' : 'Main Pot') : (lang === 'zh' ? `边池 ${idx}` : `Side Pot ${idx}`)} $${p.amount}`).join(' + ')}
                </div>
              </div>
            ) : (
