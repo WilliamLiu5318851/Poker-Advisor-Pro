@@ -420,7 +420,7 @@ function computePots(contributions) {
     remaining = remaining.map(c => ({ ...c, amount: Math.max(0, c.amount - minAmount) }));
     potIndex++;
   }
-  return result;
+  return result.filter(p => p.eligible.length > 0);
 }
 
 describe('computePots', () => {
@@ -473,5 +473,17 @@ describe('computePots', () => {
     expect(computePots([
       { id: 'hero', amount: 0, eligible: true },
     ])).toEqual([]);
+  });
+
+  test('folded player whose amount exceeds all eligible players produces no orphan pot', () => {
+    const pots = computePots([
+      { id: 'hero',  amount: 50,  eligible: true },
+      { id: 'opp1',  amount: 50,  eligible: true },
+      { id: 'opp2',  amount: 300, eligible: false }, // folded with excess
+    ]);
+    // 主池：50×3=150，eligible=[hero,opp1]
+    // 弃牌玩家多投的 250 产生 eligible:[] 的孤立池，应被过滤掉
+    expect(pots).toHaveLength(1);
+    expect(pots[0]).toEqual({ amount: 150, eligible: ['hero', 'opp1'], label: '主池' });
   });
 });

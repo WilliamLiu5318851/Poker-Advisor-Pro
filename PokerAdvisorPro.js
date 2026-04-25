@@ -583,7 +583,7 @@ function computePots(contributions) {
     remaining = remaining.map(c => ({ ...c, amount: Math.max(0, c.amount - minAmount) }));
     potIndex++;
   }
-  return result;
+  return result.filter(p => p.eligible.length > 0);
 }
 
 // --- 主程序 ---
