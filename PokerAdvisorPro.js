@@ -817,7 +817,7 @@ function TexasHoldemAdvisor() {
     await new Promise(resolve => setTimeout(resolve, 50));
 
     try {
-      const potOdds = totalPot > 0 ? (callAmount / (totalPot + callAmount)) * 100 : 0;
+      const potOdds = heroEffectivePot > 0 ? (callAmount / (heroEffectivePot + callAmount)) * 100 : 0;
       const fullTrendData = runMonteCarloSimulationTrend(); // 获取完整的趋势数据
       const analysisKey = analyzeHandFeatures(heroHand, communityCards);
       const textureRes = analyzeBoardTexture(communityCards);
