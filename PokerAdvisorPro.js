@@ -1223,7 +1223,7 @@ function TexasHoldemAdvisor() {
                  </div>
                  <div className="text-[10px] text-slate-500">
                    {lang === 'zh' ? '可赢玩家：' : 'Eligible: '}
-                   {seg.eligible.map(id => id === 'hero' ? 'Hero' : `${lang === 'zh' ? '对手' : 'Opp'}${players.findIndex(p => p.id === id) + 1}`).join('、')}
+                   {seg.eligible.map(id => id === 'hero' ? 'Hero' : `${lang === 'zh' ? '对手' : 'Opp'}${players.findIndex(p => p.id === id) + 1}`).join(lang === 'zh' ? '、' : ', ')}
                  </div>
                </div>
              ))}
