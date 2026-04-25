@@ -1046,7 +1046,7 @@ function TexasHoldemAdvisor() {
                      { border: 'border-blue-700',    bg: 'bg-blue-950',    text: 'text-blue-300',    label: 'text-blue-400' },
                    ];
                    const c = colors[Math.min(i, colors.length - 1)];
-                   const eligibleLabel = pot.eligible.map(id => id === 'hero' ? 'Hero' : `${lang === 'zh' ? '对手' : 'Opp'}${pot.eligible.indexOf(id) + 1}`).join('·');
+                   const eligibleLabel = pot.eligible.map(id => id === 'hero' ? 'Hero' : `${lang === 'zh' ? '对手' : 'Opp'}${players.findIndex(p => p.id === id) + 1}`).join('·');
                    return (
                      <div key={i} className={`flex-1 border rounded-lg p-2 text-center ${c.border} ${c.bg}`}>
                        <div className={`text-[10px] font-bold mb-1 ${c.label}`}>{pot.label}</div>
