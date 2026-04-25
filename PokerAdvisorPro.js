@@ -587,9 +587,9 @@ function computePots(contributions) {
 }
 
 const POT_COLORS = [
-  { border: 'border-emerald-700', bg: 'bg-emerald-950', text: 'text-emerald-300', label: 'text-emerald-400' },
-  { border: 'border-indigo-700',  bg: 'bg-indigo-950',  text: 'text-indigo-300',  label: 'text-indigo-400' },
-  { border: 'border-blue-700',    bg: 'bg-blue-950',    text: 'text-blue-300',    label: 'text-blue-400' },
+  { border: 'border-emerald-700', bg: 'bg-emerald-950', text: 'text-emerald-300', label: 'text-emerald-400', hex: '#10b981' },
+  { border: 'border-indigo-700',  bg: 'bg-indigo-950',  text: 'text-indigo-300',  label: 'text-indigo-400', hex: '#6366f1' },
+  { border: 'border-blue-700',    bg: 'bg-blue-950',    text: 'text-blue-300',    label: 'text-blue-400',   hex: '#3b82f6' },
 ];
 
 // --- 主程序 ---
@@ -1039,7 +1039,7 @@ function TexasHoldemAdvisor() {
              <div>
                <div className="flex gap-1 h-2 rounded-full overflow-hidden mb-3">
                  {pots.map((pot, i) => (
-                   <div key={i} style={{ flex: pot.amount, background: i === 0 ? '#10b981' : i === 1 ? '#6366f1' : '#3b82f6' }} />
+                   <div key={i} style={{ flex: pot.amount, background: POT_COLORS[Math.min(i, POT_COLORS.length - 1)].hex }} />
                  ))}
                </div>
                <div className="flex gap-2 mb-2">
@@ -1055,7 +1055,6 @@ function TexasHoldemAdvisor() {
                      </div>
                    );
                  })}
-               </div>
                </div>
                <div className="text-center text-xs text-slate-500">
                  {lang === 'zh' ? '总底池' : 'Total'} ${totalPot} = {pots.map((p, idx) => `${idx === 0 ? (lang === 'zh' ? '主池' : 'Main Pot') : (lang === 'zh' ? `边池 ${idx}` : `Side Pot ${idx}`)} $${p.amount}`).join(' + ')}
