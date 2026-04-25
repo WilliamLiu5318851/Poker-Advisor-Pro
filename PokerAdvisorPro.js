@@ -1029,17 +1029,52 @@ function TexasHoldemAdvisor() {
 
       <div className="max-w-xl mx-auto p-4 space-y-6">
          {/* Pot Info */}
-         <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800 grid grid-cols-2 gap-4">
-            <div>
-               <div className="text-xs text-slate-500">{t.mainPot}</div>
-               <div className="text-2xl font-mono font-bold text-slate-200">{mainPot} <span className="text-sm text-slate-600">+ {currentOpponentBets + heroBet}</span></div>
-               <div className="text-emerald-500 text-sm font-bold">= {totalPot}</div>
-            </div>
-            <div className="text-right">
-               <div className="text-xs text-slate-500 mb-1 flex justify-end gap-1">{t.spr} <Info className="w-3 h-3"/></div>
-               <div className={`text-2xl font-mono font-bold ${Number(spr)<3?'text-red-400':'text-blue-400'}`}>{spr}</div>
-               <div className="text-slate-500 text-xs mt-1">{t.stackAfterBet}: {currentStack}</div>
-            </div>
+         <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800">
+           {pots.length > 1 ? (
+             /* 有边池：色块可视化 */
+             <div>
+               <div className="flex gap-1 h-2 rounded-full overflow-hidden mb-3">
+                 {pots.map((pot, i) => (
+                   <div key={i} style={{ flex: pot.amount, background: i === 0 ? '#10b981' : i === 1 ? '#6366f1' : '#3b82f6' }} />
+                 ))}
+               </div>
+               <div className="flex gap-2 mb-2">
+                 {pots.map((pot, i) => {
+                   const colors = [
+                     { border: 'border-emerald-700', bg: 'bg-emerald-950', text: 'text-emerald-300', label: 'text-emerald-400' },
+                     { border: 'border-indigo-700',  bg: 'bg-indigo-950',  text: 'text-indigo-300',  label: 'text-indigo-400' },
+                     { border: 'border-blue-700',    bg: 'bg-blue-950',    text: 'text-blue-300',    label: 'text-blue-400' },
+                   ];
+                   const c = colors[Math.min(i, colors.length - 1)];
+                   const eligibleLabel = pot.eligible.map(id => id === 'hero' ? 'Hero' : `${lang === 'zh' ? '对手' : 'Opp'}${pot.eligible.indexOf(id) + 1}`).join('·');
+                   return (
+                     <div key={i} className={`flex-1 border rounded-lg p-2 text-center ${c.border} ${c.bg}`}>
+                       <div className={`text-[10px] font-bold mb-1 ${c.label}`}>{pot.label}</div>
+                       <div className={`text-lg font-mono font-bold ${c.text}`}>${pot.amount}</div>
+                       <div className="text-[9px] text-slate-500 mt-1">{eligibleLabel}</div>
+                     </div>
+                   );
+                 })}
+               </div>
+               <div className="text-center text-xs text-slate-500">
+                 {lang === 'zh' ? '总底池' : 'Total'} ${totalPot} = {pots.map(p => `${p.label} $${p.amount}`).join(' + ')}
+               </div>
+             </div>
+           ) : (
+             /* 普通状态：原有显示 */
+             <div className="grid grid-cols-2 gap-4">
+               <div>
+                 <div className="text-xs text-slate-500">{t.mainPot}</div>
+                 <div className="text-2xl font-mono font-bold text-slate-200">{mainPot} <span className="text-sm text-slate-600">+ {currentOpponentBets + heroBet}</span></div>
+                 <div className="text-emerald-500 text-sm font-bold">= {totalPot}</div>
+               </div>
+               <div className="text-right">
+                 <div className="text-xs text-slate-500 mb-1 flex justify-end gap-1">{t.spr} <Info className="w-3 h-3"/></div>
+                 <div className={`text-2xl font-mono font-bold ${Number(spr)<3?'text-red-400':'text-blue-400'}`}>{spr}</div>
+                 <div className="text-slate-500 text-xs mt-1">{t.stackAfterBet}: {currentStack}</div>
+               </div>
+             </div>
+           )}
          </div>
 
          {/* Board */}
