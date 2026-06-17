@@ -19,7 +19,15 @@
       "Bash(git push *)",
       "Bash(gh pr create --title 'feat: UX optimization for new players' --body ' *)",
       "Bash(where gh *)",
-      "Bash(winget list *)"
+      "Bash(winget list *)",
+      "Bash(git pull *)",
+      "Bash(C:\\\\Users\\\\12505\\\\.claude\\\\plugins\\\\cache\\\\claude-plugins-official\\\\superpowers\\\\5.0.7\\\\skills\\\\brainstorming\\\\scripts\\\\start-server.sh *)",
+      "Bash(node *)",
+      "Bash(git check-ignore *)",
+      "Bash(grep *)",
+      "Bash(awk *)",
+      "Bash(cd \"D:\\\\\\\\Project\\\\\\\\Poker-Advisor-Pro\\\\\\\\.worktrees\\\\\\\\feat-side-pot\")",
+      "Bash(git branch *)"
     ]
   }
 }
